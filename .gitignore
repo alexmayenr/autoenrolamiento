@@ -1,0 +1,14 @@
+# Dependencias (no se usan, pero por si acaso)
+node_modules/
+
+# Variables de entorno locales — NUNCA subir al repo
+.env
+.env.local
+.env*.local
+
+# Vercel
+.vercel
+
+# Sistema
+.DS_Store
+Thumbs.db
