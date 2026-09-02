@@ -1155,7 +1155,7 @@ function mostrarApp(nombre) {
 async function verificarSesion() {
     try {
         const resp = await fetch(API.me);
-        const data = await resp.json();
+        const data = await leerJson(resp);
         if (data && data.autenticado) {
             mostrarApp(data.nombre);
         } else {
@@ -1181,7 +1181,7 @@ async function iniciarSesion() {
     setBotonCargando('btnLogin', true);
     try {
         const resp = await postJSON(API.login, { usuario, password });
-        const data = await resp.json();
+        const data = await leerJson(resp);
         if (resp.ok && data.ok) {
             document.getElementById('loginPassword').value = '';
             mostrarApp(data.nombre);
@@ -1204,6 +1204,22 @@ async function cerrarSesion() {
         // aunque falle la llamada, regresamos al login
     }
     mostrarLogin();
+}
+
+// Lee el cuerpo de la respuesta como JSON de forma segura. Si el servidor
+// respondió con HTML (típicamente una página de error o de timeout de
+// Vercel), lanza un mensaje claro en vez del críptico "Unexpected token '<'".
+async function leerJson(response) {
+    const texto = await response.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        const err = new Error(
+            'El servidor tardó demasiado o respondió con un error. Es posible que la operación sí se haya completado en el certificador; verifíquelo antes de reintentar.'
+        );
+        err.noJson = true;
+        throw err;
+    }
 }
 
 // ── i18n strings para el PDF ────────────────────────────────
@@ -1517,7 +1533,7 @@ async function registrarEmisor() {
 
         const response = await postJSON(API.registrarEmisor, payload);
 
-        const data = await response.json();
+        const data = await leerJson(response);
 
         mostrarTecnico('techEmisorWrap', 'techEmisor', JSON.stringify(data, null, 4));
 
@@ -1555,8 +1571,9 @@ async function registrarEmisor() {
 
     } catch (error) {
 
+        const texto = error.noJson ? error.message : ('Error al consumir el API: ' + error.message);
         renderChecklist('checklistEmisor', [
-            { state: 'error', text: 'Error al consumir el API: ' + error.message }
+            { state: 'error', text: texto }
         ]);
 
     } finally {
@@ -1628,7 +1645,7 @@ async function registrarFirma() {
 
         const response = await postJSON(API.firma, payload);
 
-        const data = await response.json();
+        const data = await leerJson(response);
 
         mostrarTecnico('techFirmaWrap', 'techFirma', JSON.stringify(data, null, 4));
 
@@ -1683,7 +1700,7 @@ async function verificarFirmaYObtenerDatos() {
 
         const response = await postJSON(API.consultaEmisor, { prefijo: datosEmisorConfirmado.alias });
 
-        const data = await response.json();
+        const data = await leerJson(response);
 
         const firmaOk =
             data && data.resultado === true &&
@@ -1745,8 +1762,8 @@ async function cargarEstablecimientosYFrases() {
             postJSON(API.frases, bodyConsulta)
         ]);
 
-        const dataEsts = await respEsts.json();
-        const dataFrases = await respFrases.json();
+        const dataEsts = await leerJson(respEsts);
+        const dataFrases = await leerJson(respFrases);
 
         datosFinales.establecimientos = (dataEsts && dataEsts.establecimientos) || [];
         datosFinales.frases = (dataFrases && dataFrases.frases) || [];

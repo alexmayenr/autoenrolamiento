@@ -1,8 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "functions": {
-    "api/firma.js": {
-      "maxDuration": 120
-    }
+    "api/registrar-emisor.js": { "maxDuration": 60 },
+    "api/consulta-emisor.js": { "maxDuration": 60 },
+    "api/establecimientos.js": { "maxDuration": 60 },
+    "api/frases.js": { "maxDuration": 60 },
+    "api/firma.js": { "maxDuration": 120 }
   }
 }
