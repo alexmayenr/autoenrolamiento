@@ -1,17 +1,13 @@
-// api/registrar-emisor.js
-// Reemplaza proxy.php — registro del emisor en el certificador FEL.
-import {
-  checkMethodAndAuth,
-  getRequiredEnv,
-  readJsonBody,
-  forward,
-} from './_lib/forward.js';
+// api/registrar-emisor.js — registro del emisor en el certificador FEL.
+// Usa las credenciales del asesor autenticado.
+import { ensurePostMethod, readJsonBody, forward } from './_lib/forward.js';
+import { requireUser } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!checkMethodAndAuth(req, res)) return;
+  if (!ensurePostMethod(req, res)) return;
 
-  const env = getRequiredEnv(res, ['PARTNER_PREFIJO', 'PARTNER_LLAVE']);
-  if (!env) return;
+  const user = requireUser(req, res);
+  if (!user) return;
 
   const body = readJsonBody(req, res);
   if (!body) return;
@@ -19,10 +15,10 @@ export default async function handler(req, res) {
   await forward(res, {
     url: 'https://certificadorcloud.feel.com.gt/api/v1/partners/registro_emisor',
     headers: {
-      PREFIJO: env.PARTNER_PREFIJO,
-      LLAVE: env.PARTNER_LLAVE,
+      PREFIJO: user.prefijo,
+      LLAVE: user.llave,
     },
-    payload: body, // se reenvía el mismo JSON tal cual, como en el proxy original
+    payload: body, // se reenvía el mismo JSON tal cual
     errorLabel: 'la API de registro de emisor',
   });
 }

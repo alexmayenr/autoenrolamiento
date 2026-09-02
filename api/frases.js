@@ -1,18 +1,12 @@
-// api/frases.js
-// Reemplaza proxy_frases.php — frases tributarias obligatorias del emisor.
-import {
-  checkMethodAndAuth,
-  getRequiredEnv,
-  readJsonBody,
-  requireFields,
-  forward,
-} from './_lib/forward.js';
+// api/frases.js — frases tributarias obligatorias del emisor.
+import { ensurePostMethod, readJsonBody, requireFields, forward } from './_lib/forward.js';
+import { requireUser } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!checkMethodAndAuth(req, res)) return;
+  if (!ensurePostMethod(req, res)) return;
 
-  const env = getRequiredEnv(res, ['PARTNER_PREFIJO', 'PARTNER_LLAVE']);
-  if (!env) return;
+  const user = requireUser(req, res);
+  if (!user) return;
 
   const body = readJsonBody(req, res);
   if (!body) return;
@@ -22,8 +16,8 @@ export default async function handler(req, res) {
   await forward(res, {
     url: 'https://certificadorcloud.feel.com.gt/api/v1/partners/obtener_frases',
     headers: {
-      PREFIJO: env.PARTNER_PREFIJO,
-      LLAVE: env.PARTNER_LLAVE,
+      PREFIJO: user.prefijo,
+      LLAVE: user.llave,
     },
     payload: {
       nit: body.nit,

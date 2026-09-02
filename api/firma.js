@@ -1,14 +1,7 @@
-// api/firma.js
-// Reemplaza proxy_firma.php — registro del certificado (PFX) del emisor.
-// La carga del PFX puede tardar, por eso el timeout es mayor (90s) y se
-// declara maxDuration para que Vercel no corte la función antes.
-import {
-  checkMethodAndAuth,
-  getRequiredEnv,
-  readJsonBody,
-  requireFields,
-  forward,
-} from './_lib/forward.js';
+// api/firma.js — registro del certificado (PFX) del emisor.
+// Usa la llave del signer del asesor autenticado.
+import { ensurePostMethod, readJsonBody, requireFields, forward } from './_lib/forward.js';
+import { requireUser } from './_lib/auth.js';
 
 // Requiere Fluid compute activo (por defecto en proyectos nuevos).
 export const config = {
@@ -16,10 +9,15 @@ export const config = {
 };
 
 export default async function handler(req, res) {
-  if (!checkMethodAndAuth(req, res)) return;
+  if (!ensurePostMethod(req, res)) return;
 
-  const env = getRequiredEnv(res, ['SIGNER_LLAVE_ACCESO']);
-  if (!env) return;
+  const user = requireUser(req, res);
+  if (!user) return;
+
+  if (!user.signerLlave) {
+    res.status(500).json({ error: 'El asesor no tiene configurada la llave del signer.' });
+    return;
+  }
 
   const body = readJsonBody(req, res);
   if (!body) return;
@@ -28,7 +26,7 @@ export default async function handler(req, res) {
   if (!requireFields(res, body, requeridos)) return;
 
   const payload = {
-    llave_acceso: env.SIGNER_LLAVE_ACCESO,
+    llave_acceso: user.signerLlave,
     solicitud: {
       nombre: body.nombre,
       empresa: body.empresa,
@@ -47,7 +45,7 @@ export default async function handler(req, res) {
   await forward(res, {
     url: 'https://signer-administracion.feel.com.gt/api/v1/fel/certificados/registrar',
     payload,
-    timeoutMs: 90000, // el PFX en base64 puede tardar más
+    timeoutMs: 90000,
     errorLabel: 'el API de firma',
   });
 }

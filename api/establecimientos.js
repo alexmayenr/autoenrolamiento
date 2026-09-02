@@ -1,18 +1,12 @@
-// api/establecimientos.js
-// Reemplaza proxy_establecimientos.php — establecimientos autorizados.
-import {
-  checkMethodAndAuth,
-  getRequiredEnv,
-  readJsonBody,
-  requireFields,
-  forward,
-} from './_lib/forward.js';
+// api/establecimientos.js — establecimientos autorizados del emisor.
+import { ensurePostMethod, readJsonBody, requireFields, forward } from './_lib/forward.js';
+import { requireUser } from './_lib/auth.js';
 
 export default async function handler(req, res) {
-  if (!checkMethodAndAuth(req, res)) return;
+  if (!ensurePostMethod(req, res)) return;
 
-  const env = getRequiredEnv(res, ['PARTNER_PREFIJO', 'PARTNER_LLAVE']);
-  if (!env) return;
+  const user = requireUser(req, res);
+  if (!user) return;
 
   const body = readJsonBody(req, res);
   if (!body) return;
@@ -21,14 +15,12 @@ export default async function handler(req, res) {
 
   await forward(res, {
     url: 'https://certificadorcloud.feel.com.gt/api/v1/partners/obtener_establecimientos',
-    // Headers unificados a MAYÚSCULAS (los proxies PHP mezclaban
-    // mayúsculas/minúsculas; HTTP es case-insensitive, se unifica).
     headers: {
-      PREFIJO: env.PARTNER_PREFIJO,
-      LLAVE: env.PARTNER_LLAVE,
+      PREFIJO: user.prefijo, // credencial de partner del asesor
+      LLAVE: user.llave,
     },
     payload: {
-      nit: body.nit,
+      nit: body.nit,          // datos del EMISOR consultado
       prefijo: body.prefijo,
       llave: body.llave,
     },
