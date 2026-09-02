@@ -20,5 +20,6 @@ export default async function handler(req, res) {
     },
     payload: body, // se reenvía el mismo JSON tal cual
     errorLabel: 'la API de registro de emisor',
+    timeoutMs: 55000,
   });
 }
