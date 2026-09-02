@@ -1576,9 +1576,21 @@ async function registrarEmisor() {
 
     } catch (error) {
 
-        const texto = error.noJson ? error.message : ('Error al consumir el API: ' + error.message);
+        if (error.noJson) {
+            // El certificador respondió HTML en vez de JSON. En el registro,
+            // esto suele significar que el NIT ya está registrado en la cartera
+            // de ESTE asesor (el API no da un JSON de error para ese caso).
+            // Intentamos retomar automáticamente: la consulta confirmará si el
+            // emisor existe en su cartera y saltará al paso que corresponde.
+            renderChecklist('checklistEmisor', [
+                { state: 'pending', text: 'Este NIT parece ya estar registrado en su cartera. Verificando para retomar el proceso...' }
+            ]);
+            await retomarEmisor();
+            return;
+        }
+
         renderChecklist('checklistEmisor', [
-            { state: 'error', text: texto }
+            { state: 'error', text: 'Error al consumir el API: ' + error.message }
         ]);
 
     } finally {
