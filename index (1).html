@@ -1,0 +1,2043 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoenrolamiento de Emisor · Infile</title>
+    <link rel="icon" type="image/png" href="assets/infile-icon.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --brand: #004d98;
+            --brand-dark: #003b76;
+            --brand-lt: #e8f0fb;
+            --brand-lt2: #f4f8fd;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #b45309;
+            --black: #000000;
+            --text: #1a1a2e;
+            --muted: #6b7280;
+            --border: #e5e7eb;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: linear-gradient(180deg, #eaf0fa 0%, #f5f7fa 260px, #f5f7fa 100%);
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Estructura general de la app ─────────────────────── */
+        .app-shell {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 32px 20px 60px;
+        }
+
+        .app-hero {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+            border-radius: 20px;
+            padding: 22px 28px;
+            box-shadow: 0 14px 30px -12px rgba(0, 77, 152, .5);
+            margin-bottom: 28px;
+        }
+
+        .hero-logo {
+            height: 42px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .hero-text h1 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 800;
+            color: #fff;
+            letter-spacing: -.01em;
+        }
+
+        .hero-text p {
+            margin: 3px 0 0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, .82);
+            font-weight: 500;
+        }
+
+        /* ── Stepper ───────────────────────────────────────────── */
+        .stepper {
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            margin-bottom: 28px;
+            padding: 0 6px;
+        }
+
+        .step-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            min-width: 68px;
+        }
+
+        .step-circle {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #fff;
+            border: 2px solid var(--border);
+            color: var(--muted);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 14px;
+            transition: all .25s ease;
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--muted);
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+
+        .step-node.active .step-circle {
+            background: var(--brand);
+            border-color: var(--brand);
+            color: #fff;
+            box-shadow: 0 0 0 5px var(--brand-lt);
+        }
+
+        .step-node.active .step-label { color: var(--brand); }
+
+        .step-node.completed .step-circle {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+        }
+
+        .step-node.completed .step-label { color: var(--text); }
+
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: var(--border);
+            margin-top: 17px;
+            max-width: 90px;
+            transition: background .25s ease;
+        }
+
+        .step-line.completed { background: var(--success); }
+
+        /* ── Paneles (reemplazan las cards de Bootstrap) ──────── */
+        .panel {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 10px 24px -14px rgba(0, 77, 152, .18);
+            margin-bottom: 20px;
+            overflow: hidden;
+            border: 1px solid rgba(16, 24, 40, .04);
+        }
+
+        .panel-header { padding: 22px 26px 2px; }
+        .panel-header h2 { margin: 0; font-size: 16.5px; font-weight: 700; }
+        .panel-sub { margin: 5px 0 0; font-size: 13px; color: var(--muted); }
+        .panel-body { padding: 18px 26px 24px; }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 620px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .app-hero { flex-direction: column; text-align: center; }
+        }
+
+        .field { display: flex; flex-direction: column; gap: 6px; }
+
+        .field label {
+            font-size: 12.5px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: .01em;
+        }
+
+        .required::after {
+            content: " *";
+            color: var(--danger);
+        }
+
+        input[type=text], input[type=email], input[type=password], input[type=file], select {
+            font-family: inherit;
+            font-size: 14px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            border: 1.5px solid var(--border);
+            background: #fff;
+            color: var(--text);
+            transition: border-color .15s, box-shadow .15s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--brand);
+            box-shadow: 0 0 0 3.5px var(--brand-lt);
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23004d98'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z' clip-rule='evenodd'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 16px;
+            padding-right: 32px;
+        }
+
+        input[type=file] { padding: 8px 10px; font-size: 13px; }
+
+        .panel-actions { margin-top: 18px; }
+        .mt-sm { margin-top: 12px; }
+
+        /* ── Botones ───────────────────────────────────────────── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 9px;
+            border: none;
+            border-radius: 11px;
+            padding: 11px 22px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform .12s ease, box-shadow .12s ease, opacity .12s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--brand), #0066c6);
+            color: #fff;
+            box-shadow: 0 6px 16px -6px rgba(0, 77, 152, .55);
+        }
+
+        .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 10px 20px -8px rgba(0, 77, 152, .6); }
+        .btn-primary:active { transform: translateY(0); }
+
+        .btn-secondary {
+            background: var(--brand-lt);
+            color: var(--brand);
+        }
+
+        .btn-secondary:hover { background: #dbe8fb; }
+
+        .btn:disabled, .btn.is-loading { opacity: .75; cursor: not-allowed; pointer-events: none; }
+
+        .btn-spinner {
+            display: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, .4);
+            border-top-color: #fff;
+            animation: spin .7s linear infinite;
+        }
+
+        .btn.is-loading .btn-spinner { display: inline-block; }
+        .btn-secondary .btn-spinner { border-color: rgba(0, 77, 152, .25); border-top-color: var(--brand); }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Checklist (reemplaza los bloques de JSON crudo) ──── */
+        .checklist {
+            display: flex;
+            flex-direction: column;
+            gap: 11px;
+            margin-top: 20px;
+        }
+
+        .check-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 11px;
+            font-size: 13.5px;
+            color: var(--text);
+            line-height: 1.4;
+        }
+
+        .check-icon {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 800;
+            margin-top: 1px;
+        }
+
+        .check-icon.pending {
+            border: 2px solid var(--brand-lt);
+            border-top-color: var(--brand);
+            animation: spin .8s linear infinite;
+        }
+
+        .check-icon.done { background: var(--success); color: #fff; }
+        .check-icon.error { background: var(--danger); color: #fff; }
+        .check-text.error-text { color: var(--danger); }
+
+        /* ── Detalle técnico (JSON oculto tras un toggle) ─────── */
+        .tech-detail { margin-top: 16px; font-size: 12.5px; }
+
+        .tech-detail summary {
+            cursor: pointer;
+            color: var(--muted);
+            font-weight: 600;
+            list-style: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tech-detail summary::-webkit-details-marker { display: none; }
+        .tech-detail summary::before {
+            content: '▸';
+            display: inline-block;
+            font-size: 10px;
+            transition: transform .15s;
+        }
+        .tech-detail[open] summary::before { transform: rotate(90deg); }
+
+        .tech-detail pre {
+            margin-top: 10px;
+            background: #0f1729;
+            color: #dbe4f3;
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-family: 'DM Mono', monospace;
+            font-size: 11.5px;
+            overflow: auto;
+            max-height: 280px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .download-block {
+            margin-top: 18px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .app-footer {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 12px;
+        }
+
+        .app-footer img { width: 18px; height: 18px; opacity: .55; }
+
+        /* ── Toggle de idioma para el PDF ─────────────────────── */
+        .lang-toggle {
+            display: inline-flex;
+            background: var(--brand-lt);
+            border-radius: 8px;
+            padding: 3px;
+            gap: 2px;
+            vertical-align: middle;
+        }
+
+        .lang-btn {
+            background: transparent;
+            border: none;
+            color: var(--brand);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            padding: 5px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .lang-btn.active {
+            background: var(--brand);
+            color: white;
+        }
+
+        /* ── PDF CONTENT (diseño Infile) ─────────────────────── */
+        #pdf-content {
+            display: none;
+            background: #ffffff;
+            width: 210mm;
+            min-height: 297mm;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'DM Sans', sans-serif;
+            color: var(--text);
+        }
+
+        .pdf-top-bar {
+            background: var(--brand);
+            height: 4px;
+            width: 100%;
+        }
+
+        .pdf-inner {
+            padding: 20px 30px 20px;
+        }
+
+        .pdf-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding-bottom: 12px;
+            border-bottom: 1.5px solid var(--border);
+            margin-bottom: 16px;
+        }
+
+        .header-left {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header-logo {
+            width: 36px;
+            height: 36px;
+            object-fit: contain;
+        }
+
+        #pdf-content h1 {
+            font-size: 18px;
+            color: var(--brand);
+            margin: 6px 0 0;
+            font-weight: 800;
+            letter-spacing: -.01em;
+        }
+
+        .sub-header {
+            font-size: 11px;
+            color: var(--black);
+            margin-top: 3px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+        }
+
+        .iva-badge {
+            display: inline-block;
+            margin-top: 4px;
+            background: var(--brand-lt);
+            color: var(--brand);
+            font-size: 10px;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+            letter-spacing: .04em;
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            margin-bottom: 6px;
+        }
+
+        .section-header .s-num {
+            background: var(--brand);
+            color: white;
+            font-size: 9px;
+            font-weight: 700;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .section-header .s-title {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .1em;
+            color: var(--brand);
+        }
+
+        .section-footer {
+            margin-top: 6px;
+            font-size: 10px;
+            color: #555;
+            border-top: 1px solid #ccc;
+            padding-top: 4px;
+        }
+
+        #pdf-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+            page-break-inside: avoid;
+        }
+
+        #pdf-content thead tr {
+            background: var(--brand);
+        }
+
+        #pdf-content th {
+            text-align: left;
+            padding: 5px 7px;
+            font-size: 8px;
+            font-weight: 600;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, .9);
+            border: none;
+        }
+
+        #pdf-content tbody tr:nth-child(even) {
+            background: var(--brand-lt);
+        }
+
+        #pdf-content tbody tr:nth-child(odd) {
+            background: #ffffff;
+        }
+
+        #pdf-content td {
+            padding: 5px 7px;
+            font-size: 8.5px;
+            border: none;
+            vertical-align: top;
+            color: var(--text);
+        }
+
+        .cred-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-bottom: 4px;
+        }
+
+        .cred-card {
+            background: var(--brand-lt);
+            border: 1.5px solid #c8d9f0;
+            border-radius: 6px;
+            padding: 6px 10px 8px;
+        }
+
+        .cred-card.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .cred-card .cred-label {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--brand);
+            margin-bottom: 3px;
+        }
+
+        .cred-card .cred-value {
+            font-family: 'DM Mono', monospace;
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--black);
+            word-break: break-all;
+            line-height: 1.3;
+        }
+
+        .firma-details {
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px dashed #c8d9f0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .firma-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .firma-detail-item .detail-label {
+            font-size: 6.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .07em;
+            color: var(--muted);
+        }
+
+        .firma-detail-item .detail-value {
+            font-family: 'DM Mono', monospace;
+            font-size: 9px;
+            font-weight: 500;
+            color: var(--black);
+            margin-top: 1px;
+        }
+
+        .endpoint-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        .endpoint-card {
+            border: 1.5px solid #c8d9f0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .endpoint-card-header {
+            background: var(--brand);
+            padding: 5px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .endpoint-card-header .ep-title {
+            font-size: 8px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: rgba(255, 255, 255, .9);
+        }
+
+        .endpoint-card-header .ep-method {
+            background: rgba(255, 255, 255, .2);
+            color: white;
+            font-size: 7px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 3px;
+            letter-spacing: .05em;
+        }
+
+        .endpoint-card-body {
+            background: var(--brand-lt);
+            padding: 6px 10px 8px;
+        }
+
+        .ep-row {
+            margin-bottom: 4px;
+        }
+
+        .ep-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .ep-row .ep-label {
+            font-size: 7px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--brand);
+            margin-bottom: 2px;
+        }
+
+        .ep-row .ep-val {
+            font-family: 'DM Mono', monospace;
+            font-size: 8.5px;
+            font-weight: 600;
+            color: var(--black);
+            word-break: break-all;
+            line-height: 1.3;
+        }
+
+        .pdf-footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1.5px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .pdf-footer span {
+            font-size: 8px;
+            color: var(--muted);
+            letter-spacing: .04em;
+        }
+
+        .pdf-footer .footer-brand {
+            font-weight: 700;
+            color: var(--brand);
+            font-size: 9px;
+            letter-spacing: .06em;
+        }
+
+        /* ── Login ─────────────────────────────────────────────── */
+        .login-shell {
+            max-width: 380px;
+            margin: 0 auto;
+            padding: 64px 20px 60px;
+        }
+
+        .login-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 30px 26px 28px;
+            box-shadow: 0 18px 40px -20px rgba(0, 77, 152, .4);
+        }
+
+        .login-logo {
+            display: block;
+            height: 34px;
+            width: auto;
+            margin: 0 auto 18px;
+        }
+
+        .login-card h1 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            color: var(--brand);
+            letter-spacing: -.01em;
+        }
+
+        .login-card p.login-sub {
+            margin: 0 0 22px;
+            font-size: 12.5px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .login-error {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            font-size: 12.5px;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 9px 12px;
+            margin-bottom: 14px;
+        }
+
+        /* Dentro del login los campos se apilan (la tarjeta es angosta). */
+        .login-card .form-grid {
+            display: block;
+        }
+
+        .login-card .field {
+            margin-bottom: 14px;
+        }
+
+        .login-card input {
+            width: 100%;
+        }
+
+        .hero-user {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hero-user .hero-user-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, .92);
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, .28);
+        }
+
+        @media print {
+            @page {
+                margin: 0;
+                size: A4;
+            }
+
+            body {
+                padding: 0;
+                background: white;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            #pdf-content {
+                display: block !important;
+                page-break-after: avoid;
+            }
+
+            table,
+            .cred-grid,
+            .endpoint-grid {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── Pantalla de login (se muestra hasta que haya sesión) ── -->
+<div class="login-shell no-print" id="loginShell" style="display:none;">
+    <div class="login-card">
+        <img class="login-logo" src="assets/infile-logo-full.png" alt="Infile"
+             onerror="this.style.display='none'">
+        <h1>Autoenrolamiento de Emisor</h1>
+        <p class="login-sub">Ingrese con sus credenciales de asesor.</p>
+
+        <div class="login-error" id="loginError"></div>
+
+        <div class="form-grid">
+            <div class="field">
+                <label class="required" for="loginUsuario">Usuario</label>
+                <input type="text" id="loginUsuario" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label class="required" for="loginPassword">Contraseña</label>
+                <input type="password" id="loginPassword" autocomplete="current-password" required>
+            </div>
+        </div>
+
+        <div class="panel-actions">
+            <button class="btn btn-primary" id="btnLogin" onclick="iniciarSesion()">
+                <span class="btn-label">Ingresar</span>
+                <span class="btn-spinner"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell no-print" id="appShell" style="display:none;">
+
+    <header class="app-hero">
+        <img class="hero-logo" src="assets/infile-logo-full-white.png" alt="Infile"
+             onerror="this.style.display='none'">
+        <div class="hero-text">
+            <h1>Autoenrolamiento de Emisor</h1>
+            <p>Certificación FEL · Portal de autoservicio</p>
+        </div>
+        <div class="hero-user">
+            <span class="hero-user-name" id="heroUserName"></span>
+            <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
+        </div>
+    </header>
+
+    <div class="stepper">
+        <div class="step-node active" data-step="1">
+            <div class="step-circle">1</div>
+            <div class="step-label">Emisor</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-node" data-step="2">
+            <div class="step-circle">2</div>
+            <div class="step-label">Firma</div>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-node" data-step="3">
+            <div class="step-circle">3</div>
+            <div class="step-label">Verificación</div>
+        </div>
+    </div>
+
+    <!-- PASO 1: Datos del emisor -->
+    <section class="panel" id="panelEmisor">
+        <div class="panel-header">
+            <h2>Datos del Emisor</h2>
+            <p class="panel-sub">Información requerida para iniciar el autoenrolamiento en el certificador FEL.</p>
+        </div>
+
+        <div class="panel-body">
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label class="required" for="nit">NIT Emisor</label>
+                    <input type="text" id="nit" maxlength="20" placeholder="Ej: 11201677K" required>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="correo">Correo</label>
+                    <input type="email" id="correo" placeholder="correo@empresa.com" required>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="nombre">Nombre Emisor</label>
+                    <input type="text" id="nombre" required>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="comercial">Nombre Comercial</label>
+                    <input type="text" id="comercial" required>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="iva">Afiliación IVA</label>
+                    <select id="iva" required>
+                        <option value="GEN">GEN - General</option>
+                        <option value="EXE">EXE</option>
+                        <option value="PEQ">PEQ - Pequeño Contribuyente</option>
+                        <option value="ECA">ECA</option>
+                        <option value="EXI">EXI</option>
+                        <option value="PRI">PRI</option>
+                        <option value="PEC">PEC</option>
+                        <option value="IDP">IDP</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="estado">Estado Implementación</label>
+                    <select id="estado" required>
+                        <option value="IMPLEMENTACION">IMPLEMENTACION</option>
+                        <option value="PRODUCCION">PRODUCCION</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="panel-actions">
+                <button class="btn btn-primary" id="btnEmisor" onclick="registrarEmisor()">
+                    <span class="btn-label">Registrar Emisor</span>
+                    <span class="btn-spinner"></span>
+                </button>
+                <button class="btn btn-secondary" id="btnRetomar" onclick="retomarEmisor()">
+                    <span class="btn-label">Retomar emisor existente</span>
+                    <span class="btn-spinner"></span>
+                </button>
+            </div>
+
+            <div class="checklist" id="checklistEmisor"></div>
+
+            <details class="tech-detail" id="techEmisorWrap" style="display:none;">
+                <summary>Ver detalle técnico (JSON)</summary>
+                <pre id="techEmisor"></pre>
+            </details>
+
+        </div>
+    </section>
+
+    <!-- PASO 2: este bloque solo se muestra cuando el enrolamiento responde resultado: true -->
+    <section class="panel" id="cardFirma" style="display:none;">
+        <div class="panel-header">
+            <h2>Carga de Firma Electrónica</h2>
+            <p class="panel-sub">Sube el certificado PFX/P12 emitido para este emisor.</p>
+        </div>
+
+        <div class="panel-body">
+
+            <div class="form-grid">
+
+                <div class="field">
+                    <label class="required" for="archivoPfx">Archivo PFX / P12</label>
+                    <input type="file" id="archivoPfx" accept=".pfx,.p12" required>
+                </div>
+
+                <div class="field">
+                    <label class="required" for="passwordPfx">Contraseña del PFX</label>
+                    <input type="password" id="passwordPfx" required>
+                </div>
+
+            </div>
+
+            <div class="panel-actions">
+                <button class="btn btn-primary" id="btnFirma" onclick="registrarFirma()">
+                    <span class="btn-label">Registrar Firma</span>
+                    <span class="btn-spinner"></span>
+                </button>
+            </div>
+
+            <div class="checklist" id="checklistFirma"></div>
+
+            <details class="tech-detail" id="techFirmaWrap" style="display:none;">
+                <summary>Ver detalle técnico (JSON)</summary>
+                <pre id="techFirma"></pre>
+            </details>
+
+        </div>
+    </section>
+
+    <!-- PASO 3: Verificación automática de firma + carga de establecimientos y frases -->
+    <section class="panel" id="cardVerificacionFinal" style="display:none;">
+        <div class="panel-header">
+            <h2>Verificación Final</h2>
+            <p class="panel-sub">Confirmamos el estado de la firma y recopilamos los datos del emisor.</p>
+        </div>
+
+        <div class="panel-body">
+
+            <div class="checklist" id="checklistVerificacion"></div>
+
+            <button class="btn btn-secondary mt-sm" id="btnReintentarFirma" style="display:none;"
+                    onclick="verificarFirmaYObtenerDatos()">
+                <span class="btn-label">Verificar Firma de Nuevo</span>
+                <span class="btn-spinner"></span>
+            </button>
+
+            <div id="bloqueDescarga" style="display:none;" class="download-block">
+                <button class="btn btn-primary" id="btnDescargarCredenciales" onclick="descargarCredenciales()">
+                    <span class="btn-label">⬇ Descargar Credenciales del Cliente</span>
+                </button>
+
+                <span class="lang-toggle">
+                    <button type="button" class="lang-btn active" id="btnLangEs" onclick="setLang('es')">ES</button>
+                    <button type="button" class="lang-btn" id="btnLangEn" onclick="setLang('en')">EN</button>
+                </span>
+            </div>
+
+        </div>
+    </section>
+
+    <footer class="app-footer">
+        <img src="assets/infile-icon.png" alt="Infile" onerror="this.style.display='none'">
+        <span>Infile · Certificación FEL</span>
+    </footer>
+
+</div>
+
+<!-- ── Contenido del PDF de credenciales (oculto hasta imprimir) ── -->
+<div id="pdf-content">
+    <div class="pdf-top-bar"></div>
+    <div class="pdf-inner">
+
+        <div class="pdf-header">
+            <div class="header-left">
+                <img class="header-logo" src="assets/infile-icon.png" alt="Infile"
+                     onerror="this.style.display='none'">
+                <h1 id="pdf-main-title">Credenciales de Pruebas</h1>
+                <div id="out_cliente" class="sub-header"></div>
+                <div id="out_iva" class="iva-badge"></div>
+            </div>
+        </div>
+
+        <div class="section-header">
+            <div class="s-num">1</div>
+            <div class="s-title" id="sec-auth">Credenciales de Autenticación</div>
+        </div>
+        <div id="out_auth"></div>
+
+        <div class="section-header">
+            <div class="s-num">2</div>
+            <div class="s-title" id="sec-phrases">Frases Obligatorias</div>
+        </div>
+        <div id="out_phrases"></div>
+
+        <div class="section-header">
+            <div class="s-num">3</div>
+            <div class="s-title" id="sec-ests">Establecimientos Autorizados</div>
+        </div>
+        <div id="out_ests"></div>
+        <div class="section-footer">
+            <strong>IMPORTANTE:</strong> La dirección, el departamento y el municipio deben enviarse de forma
+            separada a nivel de XML.
+        </div>
+
+        <div class="section-header">
+            <div class="s-num">4</div>
+            <div class="s-title">Endpoints</div>
+        </div>
+        <div class="endpoint-grid">
+            <div class="endpoint-card">
+                <div class="endpoint-card-header">
+                    <span class="ep-method">POST</span>
+                    <span class="ep-title" id="ep-cert-title">Certificación</span>
+                </div>
+                <div class="endpoint-card-body">
+                    <div class="ep-row">
+                        <div class="ep-label">URL</div>
+                        <div class="ep-val">https://certificador.feel.com.gt/fel/procesounificado/transaccion/v2/xml</div>
+                    </div>
+                    <div class="ep-row">
+                        <div class="ep-label">Content-Type</div>
+                        <div class="ep-val">application/xml</div>
+                    </div>
+                </div>
+            </div>
+            <div class="endpoint-card">
+                <div class="endpoint-card-header">
+                    <span class="ep-method">POST</span>
+                    <span class="ep-title" id="ep-nit-title">Consulta NIT</span>
+                </div>
+                <div class="endpoint-card-body">
+                    <div class="ep-row">
+                        <div class="ep-label">URL</div>
+                        <div class="ep-val">https://consultareceptores.feel.com.gt/rest/action</div>
+                    </div>
+                    <div class="ep-row">
+                        <div class="ep-label">Content-Type</div>
+                        <div class="ep-val">application/json</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="pdf-footer">
+            <span id="pdf-footer-text">Ambiente de Pruebas</span>
+            <span class="footer-brand">INFILE</span>
+        </div>
+    </div>
+</div>
+
+<script>
+
+// ── Configuración del API ───────────────────────────────────
+// Rutas de las funciones serverless (antes eran los proxy_*.php).
+const API = {
+    registrarEmisor:  '/api/registrar-emisor',
+    firma:            '/api/firma',
+    consultaEmisor:   '/api/consulta-emisor',
+    establecimientos: '/api/establecimientos',
+    frases:           '/api/frases',
+    login:            '/api/login',
+    logout:           '/api/logout',
+    me:               '/api/me',
+};
+
+// Wrapper para llamadas POST JSON. La cookie de sesión (httpOnly) viaja
+// automáticamente por ser mismo origen; el navegador no la maneja.
+// Si el servidor responde 401, la sesión expiró: se regresa al login.
+async function postJSON(url, payload) {
+    const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+    });
+    if (resp.status === 401 && url !== API.login) {
+        mostrarLogin();
+        throw new Error('Su sesión expiró. Vuelva a iniciar sesión.');
+    }
+    return resp;
+}
+
+// ── Sesión / Login ──────────────────────────────────────────
+function mostrarLogin() {
+    document.getElementById('appShell').style.display = 'none';
+    document.getElementById('loginShell').style.display = 'block';
+}
+
+function mostrarApp(nombre) {
+    document.getElementById('loginShell').style.display = 'none';
+    document.getElementById('appShell').style.display = 'block';
+    document.getElementById('heroUserName').textContent = nombre || '';
+}
+
+async function verificarSesion() {
+    try {
+        const resp = await fetch(API.me);
+        const data = await leerJson(resp);
+        if (data && data.autenticado) {
+            mostrarApp(data.nombre);
+        } else {
+            mostrarLogin();
+        }
+    } catch {
+        mostrarLogin();
+    }
+}
+
+async function iniciarSesion() {
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorBox = document.getElementById('loginError');
+    errorBox.style.display = 'none';
+
+    if (!usuario || !password) {
+        errorBox.textContent = 'Ingrese usuario y contraseña.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    setBotonCargando('btnLogin', true);
+    try {
+        const resp = await postJSON(API.login, { usuario, password });
+        const data = await leerJson(resp);
+        if (resp.ok && data.ok) {
+            document.getElementById('loginPassword').value = '';
+            mostrarApp(data.nombre);
+        } else {
+            errorBox.textContent = (data && data.error) || 'No se pudo iniciar sesión.';
+            errorBox.style.display = 'block';
+        }
+    } catch (e) {
+        errorBox.textContent = 'Error de conexión: ' + e.message;
+        errorBox.style.display = 'block';
+    } finally {
+        setBotonCargando('btnLogin', false);
+    }
+}
+
+async function cerrarSesion() {
+    try {
+        await fetch(API.logout, { method: 'POST' });
+    } catch {
+        // aunque falle la llamada, regresamos al login
+    }
+    mostrarLogin();
+}
+
+// Lee el cuerpo de la respuesta como JSON de forma segura. Si el servidor
+// respondió con HTML (típicamente una página de error o de timeout de
+// Vercel), lanza un mensaje claro en vez del críptico "Unexpected token '<'".
+async function leerJson(response) {
+    const texto = await response.text();
+    try {
+        return JSON.parse(texto);
+    } catch {
+        const err = new Error(
+            'El servidor tardó demasiado o respondió con un error. Es posible que la operación sí se haya completado en el certificador; verifíquelo antes de reintentar.'
+        );
+        err.noJson = true;
+        throw err;
+    }
+}
+
+// ── i18n strings para el PDF ────────────────────────────────
+const STRINGS = {
+    es: {
+        pdfTitleTest: 'Credenciales de Pruebas',
+        pdfTitleProd: 'Credenciales de Producción',
+        ivaLabel: 'Afiliación IVA: ',
+        secAuth: 'Credenciales de Autenticación',
+        secPhrases: 'Frases Obligatorias',
+        secEsts: 'Establecimientos Autorizados',
+        epCertTitle: 'Certificación',
+        epNitTitle: 'Consulta NIT',
+        footerTest: 'Ambiente de Pruebas',
+        footerProd: 'Ambiente de Producción',
+        credNit: 'NIT Emisor',
+        credAlias: 'Prefijo / Alias',
+        credCorreo: 'Correo',
+        credLlaveApi: 'Llave API (Emisor)',
+        credTokenFirma: 'Token de Firma',
+        credVencimiento: 'Vencimiento',
+        credEstado: 'Estado',
+        phrasesHeaders: ['No.', 'Descripción', 'Tipo', 'Escenario', 'No. de Resolución', 'Fecha de Resolución'],
+        estsHeaders: ['Código', 'Nombre Comercial', 'Dirección', 'Estado'],
+    },
+    en: {
+        pdfTitleTest: 'Test Credentials',
+        pdfTitleProd: 'Production Credentials',
+        ivaLabel: 'VAT Affiliation: ',
+        secAuth: 'Authentication Credentials',
+        secPhrases: 'Required Phrases',
+        secEsts: 'Authorized Establishments',
+        epCertTitle: 'Certification',
+        epNitTitle: 'NIT Lookup',
+        footerTest: 'Test Environment',
+        footerProd: 'Production Environment',
+        credNit: 'Issuer NIT',
+        credAlias: 'Prefix / Alias',
+        credCorreo: 'Email',
+        credLlaveApi: 'API Key (Issuer)',
+        credTokenFirma: 'Signature Token',
+        credVencimiento: 'Expiration',
+        credEstado: 'Status',
+        phrasesHeaders: ['No.', 'Description', 'Type', 'Scenario', 'Resolution No.', 'Resolution Date'],
+        estsHeaders: ['Code', 'Trade Name', 'Address', 'Status'],
+    }
+};
+
+let lang = 'es';
+
+function setLang(l) {
+    lang = l;
+    document.getElementById('btnLangEs').classList.toggle('active', l === 'es');
+    document.getElementById('btnLangEn').classList.toggle('active', l === 'en');
+}
+
+// ── Mapeo completo de frases por Tipo|Escenario ──────────────
+// Nota: las descripciones legales se mantienen siempre en español,
+// independientemente del idioma elegido para el PDF, ya que son
+// el texto oficial exigido por la SAT.
+const fraseMap = {
+    "1|1": "Sujeto a pagos trimestrales ISR",
+    "1|2": "Sujeto a retención definitiva ISR",
+    "1|3": "Sujeto a pago directo ISR",
+    "1|4": "Exento del ISR",
+    "2|1": "Agente de Retención del IVA",
+    "3|1": "No genera derecho a crédito fiscal",
+    "4|1": "Exportaciones. Exenta del IVA (art. 7 núm. 2 Ley del IVA)",
+    "4|2": "Servicios que presten las instituciones fiscalizadas por la SIB. Exenta del IVA (art. 7 núm. 4 Ley del IVA)",
+    "4|3": "Ventas de cooperativas. Exenta del IVA (art. 7 núm. 5 Ley del IVA)",
+    "4|4": "Aportes y donaciones. Exenta del IVA (art. 7 núm. 9 Ley del IVA)",
+    "4|5": "Cuotas periódicas a asociaciones o instituciones sociales. Exenta del IVA (art. 7 núm. 10 Ley del IVA)",
+    "4|6": "Servicios exentos. Exenta del IVA (art. 7 núm. 13 Ley del IVA)",
+    "4|7": "Venta de activos de Bancos. Exenta del IVA (art. 7 núm. 14 Ley del IVA)",
+    "4|8": "Cuotas centros educativos. Exenta del IVA (art. 8 núm. 1 Ley del IVA)",
+    "4|9": "Medicamentos genéricos o antirretrovirales. Exenta del IVA (art. 7 núm. 15 Ley del IVA)",
+    "4|10": "Vehículos. Esta factura no incluye IVA (art. 55 Ley del IVA)",
+    "4|11": "Operaciones específicas de maquilas. No afecta al IVA (Decreto 29-89 Ley de Maquila)",
+    "4|12": "Ventas de zonas francas. No afecta al IVA (Decreto 65-89 Ley de Zonas Francas)",
+    "4|13": "Venta de vivienda. Exenta del IVA (art. 7 núm. 12,  Ley del IVA)",
+    "4|14": "Venta de títulos y acciones. Exenta del IVA (art. 7 núm. 6 Ley del IVA)",
+    "4|15": "Venta al menudeo en mercados. Exenta del IVA (art. 7 núm. 11 Ley del IVA)",
+    "4|16": "Ventas y servicios universidades. Exenta del IVA (art. 8 núm. 2 Ley del IVA)",
+    "4|17": "Ventas Zolic. Exenta del IVA (art. 32 literal c Ley Orgánica Zolic)",
+    "4|18": "Ventas a exentos con resolución específica. (Contribuyentes con resoluciones específicas de exención al IVA)",
+    "4|19": "Exenta del IVA (art. 3 num. 7 Ley del IVA)",
+    "4|20": "Aportes (art. 35 Ley de Fortalecimiento al Emprendimiento)",
+    "4|21": "Cargos e impuestos no sujetos a IVA (Aerolíneas)",
+    "4|22": "Factura origen no incluye IVA",
+    "4|23": "Transferencia de dominio de bienes muebles. Exenta del IVA (art. 7, numeral 3, literal c, Ley del IVA)",
+    "4|24": "Servicios no afectos. No afecto al IVA (Fuera del hecho generador art. 3, 7 y 8, Ley del IVA)",
+    "4|25": "Exenta del IVA (art. 31 Dec. 22-73 Ley Orgánica Zolic)",
+    "4|26": "Exenta del IVA (art. 4 Dec. 31-2022 Ley de Fom. del Trab. Temp. en el Extranjero)",
+    "4|27": "Exenta del IVA (art. 7 literal \"a\" Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|28": "Exenta del IVA (art. 7 literal \"c\" Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|29": "Exenta del IVA (art. 7 literal \"d\" Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|30": "Exenta del IVA (art. 7 literal \"g\" Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|31": "Exenta del IVA (art. 7 literal \"h\" o \"i\" Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|32": "Exenta del IVA (art. 8 Dec. 40-2022 Ley Inc. Mov. Eléctrica)",
+    "4|33": "No afecto al IVA (Fuera del hecho generador art. 3, Ley del IVA)",
+    "4|34": "Bienes para la atención al cáncer. Exenta del IVA (Art. 41 Ley para la Atención Integral del Cáncer)",
+    "4|35": "Donaciones para la atención al cáncer. Exenta del IVA (Art. 41 Ley para la Atención Integral del Cáncer)",
+    "4|36": "Venta de productos de régimen primario y pecuario no industrializados. Exenta del IVA (art. 7 num. 16 Ley del IVA)",
+    "5|1": "El vendedor o prestador del servicio se negó a emitir la factura correspondiente. (art. 52 Ley del IVA)",
+    "5|2": "Vendedor de productos agropecuarios, artesanales y productos reciclados",
+    "6|1": "Con forma de pago sobre las ventas brutas",
+    "6|2": "Con forma de pago sobre las utilidades, no retener",
+    "7|1": "No retener, ",
+    "7|2": "No retener, ",
+    "8|1": "Exenciones generales universidades. Exenta del ISR (art. 8 núm. 2 Ley de Actualización Tributaria)",
+    "8|2": "Exenciones generales centros educativos privados. Exenta del ISR (art. 8 núm. 3 Ley de Actualización Tributaria)",
+    "8|3": "Exenciones generales iglesias. Exenta del ISR (art. 8 núm. 5 Ley de Actualización Tributaria)",
+    "8|4": "Exenciones Rentas de Actividades Lucrativas entes no lucrativos.  Exenta del ISR (art. 11 núm. 1 Ley de Actualización Tributaria)",
+    "8|5": "Exenciones Rentas de Actividades Lucrativas cooperativas.  Exenta del ISR (art. 11 núm. 2 Ley de Actualización Tributaria)",
+    "8|6": "Exenta del ISR (art. 31 Ley Orgánica Zolic)",
+    "8|7": "Exenta del ISR (art. 32 litar a, Ley Orgánica Zolic)",
+    "8|8": "Exenta del ISR (art. 8 núm. 1 Ley de Actualización Tributaria)",
+    "8|9": "Exenta del ISR (Art. 4, literal b), numeral ii, Dec. 40-2022, Ley Inc. Mov. Eléctrica)",
+    "8|10": "Exenta del ISR (Art. 7, literal f, Dec. 40-2022, Ley Inc. Mov. Eléctrica)",
+    "8|11": "Exenta del ISR (Art. 7, literal g, Dec. 40-2022, Ley Inc. Mov. Eléctrica)",
+    "8|12": "No afecta al ISR (Fuera del hecho generador, arto. 10, Ley de Actualización Tributaria)",
+    "9|1": "Esta factura incluye apoyo social temporal al precio del gas licuado envasado en cilindros portátiles (Dto. 17-2022)",
+    "9|2": "ESTA FACTURA INCLUYE APOYO SOCIAL TEMPORAL DECRETO 42-2022 POR UN VALOR DE GTQ ",
+    "9|3": "MONTO TOTAL A PAGAR SIN APOYO SOCIAL GTQ ",
+    "9|4": "Exenta Impuesto Salida Vía Aérea (art. 4 Dec. 31-2022 Ley de Fom. del Trab. Temp. en el Extranjero)",
+    "9|5": "Esta factura incluye apoyo social temporal al precio del gas licuado envasado en cilindros portátiles (Dto. 45-2022)",
+    "9|6": "Esta factura incluye apoyo social temporal al precio del gas licuado envasado en cilindros portátiles (Dto. 45-2022 y sus Reformas)",
+    "9|7": "Esta factura incluye apoyo social temporal al precio del gas licuado envasado en cilindros portátiles (Dec. 5-2023)",
+    "9|8": "La emisión de este documento no sustituye una factura.",
+    "9|9": "Este documento no constituye factura contable ni genera derecho a crédito fiscal del IVA.",
+    "9|10": "Concluido el servicio, debe emitirse la factura, conforme la liquidación correspondiente.",
+    "9|11": "La emisión de esta factura provisional no sustituye la emisión de la factura definitiva.",
+    "9|12": "La emisión de este documento no sustituye la emisión de la factura.",
+    "9|13": "Únicamente para gastos personales y planilla del IVA de asalariados.",
+    "9|14": "Facturación en ubicación temporal (art. 30 Reglamento Ley del IVA)",
+    "9|15": "Venta de vehículos del año en curso, anterior o siguiente",
+    "9|16": "Vendedor intermediario de productos agropecuarios, artesanales y productos reciclados",
+    "9|17": "Documento de rebaja de inventarios",
+    "9|18": "Monto total a pagar sin apoyo social temporal GTQ ",
+    "9|19": "Esta factura incluye apoyo social temporal Decreto Número 11-2026 por un valor de GTQ ",
+    "9|20": "Concluido el traslado de productos, debe emitirse la factura correspondiente",
+    "9|21": "La gasolina incluida en este documento está afecta al IDP en un 90% (Acuerdo Gubernativo No. 257-2025)",
+    "10|1": "Con forma de pago sobre las ventas brutas",
+    "10|2": "Con forma de pago sobre ventas brutas de exportaciones",
+    "11|1": "Con forma de pago sobre las ventas brutas",
+    "11|2": "Con forma de pago sobre las utilidades",
+    "11|3": "Con forma de pago sobre ventas brutas de exportaciones",
+    "12|1": "No genera débito fiscal ni crédito fiscal / régimen primario",
+    "12|2": "No genera débito fiscal ni crédito fiscal / régimen pecuario"
+};
+
+function obtenerTextoPorTipoEscenario(tipo, escenario) {
+    const key = String(tipo) + "|" + String(escenario);
+    return fraseMap[key] || '-';
+}
+
+function limpiarNit(nit) {
+    return nit
+        .toUpperCase()
+        .replace(/[^0-9K]/g, '');
+}
+
+function validarNit(nit) {
+
+    nit = limpiarNit(nit);
+
+    const regex = /^[0-9]+K?$/;
+
+    if (!regex.test(nit)) {
+        return false;
+    }
+
+    const cantidadK = (nit.match(/K/g) || []).length;
+
+    if (cantidadK > 1) {
+        return false;
+    }
+
+    if (cantidadK === 1 && !nit.endsWith('K')) {
+        return false;
+    }
+
+    return true;
+}
+
+function generarPrefijo(nit, estado) {
+
+    const nitLimpio = limpiarNit(nit);
+
+    if (estado === 'IMPLEMENTACION') {
+        return nitLimpio + 'IMP';
+    }
+
+    if (estado === 'PRODUCCION') {
+        return nitLimpio + 'PROD';
+    }
+
+    return nitLimpio;
+}
+
+// ── Utilidades de UI: checklist, stepper y botones con spinner ──
+// Estas funciones reemplazan los antiguos bloques <pre> de JSON
+// crudo por una lista de verificación legible. El JSON completo de
+// cada respuesta se sigue guardando, pero queda oculto detrás de un
+// <details> "Ver detalle técnico" para no saturar la pantalla.
+
+function renderChecklist(containerId, items) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = items.map(function (item) {
+        const icono = item.state === 'done' ? '✓' : (item.state === 'error' ? '✕' : '');
+        const claseTexto = item.state === 'error' ? 'check-text error-text' : 'check-text';
+        return '<div class="check-item">' +
+                    '<span class="check-icon ' + item.state + '">' + icono + '</span>' +
+                    '<span class="' + claseTexto + '">' + item.text + '</span>' +
+                '</div>';
+    }).join('');
+}
+
+function setBotonCargando(btnId, cargando) {
+    const btn = document.getElementById(btnId);
+    btn.classList.toggle('is-loading', cargando);
+    btn.disabled = cargando;
+}
+
+function mostrarTecnico(wrapId, preId, contenido) {
+    document.getElementById(preId).textContent = contenido;
+    document.getElementById(wrapId).style.display = 'block';
+}
+
+function avanzarStepper(hastaPaso) {
+    document.querySelectorAll('.step-node').forEach(function (node) {
+        const n = parseInt(node.getAttribute('data-step'), 10);
+        node.classList.remove('active', 'completed');
+        const circle = node.querySelector('.step-circle');
+        if (n < hastaPaso) {
+            node.classList.add('completed');
+            circle.textContent = '✓';
+        } else if (n === hastaPaso) {
+            node.classList.add('active');
+            circle.textContent = n;
+        } else {
+            circle.textContent = n;
+        }
+    });
+    document.querySelectorAll('.step-line').forEach(function (line, idx) {
+        line.classList.toggle('completed', (idx + 1) < hastaPaso);
+    });
+}
+
+avanzarStepper(1);
+
+// Guarda los datos del emisor ya confirmados por el API de enrolamiento,
+// para reutilizarlos en los siguientes pasos.
+let datosEmisorConfirmado = null;
+
+async function registrarEmisor() {
+
+    const nitOriginal = document.getElementById('nit').value.trim();
+    const nit = limpiarNit(nitOriginal);
+
+    const correo = document.getElementById('correo').value.trim();
+    const nombre = document.getElementById('nombre').value.trim();
+    const comercial = document.getElementById('comercial').value.trim();
+    const iva = document.getElementById('iva').value;
+    const estado = document.getElementById('estado').value;
+
+    if (!nit) {
+        alert('Debe ingresar un NIT.');
+        return;
+    }
+
+    if (!validarNit(nit)) {
+        alert('NIT inválido. Solo se permiten números y una K al final.');
+        return;
+    }
+
+    if (!nombre) {
+        alert('Debe ingresar el Nombre Emisor.');
+        return;
+    }
+
+    if (!comercial) {
+        alert('Debe ingresar el Nombre Comercial.');
+        return;
+    }
+
+    if (!correo) {
+        alert('Debe ingresar un correo electrónico.');
+        return;
+    }
+
+    const payload = {
+        emisor: {
+            prefijo: generarPrefijo(nit, estado),
+            nit_emisor: nit,
+            nombre_emisor: nombre,
+            nombre_comercial: comercial,
+            afiliacion_iva: iva,
+            correo: correo,
+            estado_implementacion: estado
+        }
+    };
+
+    setBotonCargando('btnEmisor', true);
+    document.getElementById('techEmisorWrap').style.display = 'none';
+    renderChecklist('checklistEmisor', [
+        { state: 'pending', text: 'Enviando datos al certificador...' }
+    ]);
+
+    try {
+
+        const response = await postJSON(API.registrarEmisor, payload);
+
+        const data = await leerJson(response);
+
+        mostrarTecnico('techEmisorWrap', 'techEmisor', JSON.stringify(data, null, 4));
+
+        if (data && data.resultado === true && data.emisor) {
+
+            datosEmisorConfirmado = {
+                nombre:   comercial,               // Nombre Comercial
+                empresa:  nombre,                  // Nombre Emisor / Razón social
+                correo:   correo,
+                alias:    data.emisor.prefijo,      // prefijo confirmado por el servidor
+                nit:      nit,
+                iva:      iva,
+                estado:   estado                    // IMPLEMENTACION | PRODUCCION
+            };
+
+            renderChecklist('checklistEmisor', [
+                { state: 'done', text: 'Emisor registrado correctamente' },
+                { state: 'done', text: 'Credenciales API generadas (prefijo ' + data.emisor.prefijo + ')' }
+            ]);
+
+            document.getElementById('cardFirma').style.display = 'block';
+            avanzarStepper(2);
+            document.getElementById('cardFirma').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        } else {
+
+            document.getElementById('cardFirma').style.display = 'none';
+            datosEmisorConfirmado = null;
+
+            const mensaje = (data && (data.mensaje || data.error)) || 'No se pudo registrar el emisor.';
+            renderChecklist('checklistEmisor', [
+                { state: 'error', text: mensaje },
+                { state: 'pending', text: 'Si el emisor ya estaba registrado, use "Retomar emisor existente" para continuar desde donde quedó (por ejemplo, la carga de firma).' }
+            ]);
+        }
+
+    } catch (error) {
+
+        const texto = error.noJson ? error.message : ('Error al consumir el API: ' + error.message);
+        renderChecklist('checklistEmisor', [
+            { state: 'error', text: texto }
+        ]);
+
+    } finally {
+
+        setBotonCargando('btnEmisor', false);
+    }
+}
+
+// Retomar un emisor YA registrado que quedó a medias (típicamente con la
+// firma pendiente). Reusa consulta-emisor: reconstruye el prefijo desde el
+// NIT + estado, consulta su estado en el certificador y salta al paso que
+// corresponde (firma pendiente -> paso 2; firma ya cargada -> paso 3).
+async function retomarEmisor() {
+
+    const nitOriginal = document.getElementById('nit').value.trim();
+    const nit = limpiarNit(nitOriginal);
+    const estado = document.getElementById('estado').value;
+
+    if (!nit) {
+        alert('Ingrese el NIT del emisor que desea retomar.');
+        return;
+    }
+    if (!validarNit(nit)) {
+        alert('NIT inválido. Solo se permiten números y una K al final.');
+        return;
+    }
+
+    const alias = generarPrefijo(nit, estado);
+
+    setBotonCargando('btnRetomar', true);
+    document.getElementById('techEmisorWrap').style.display = 'none';
+    renderChecklist('checklistEmisor', [
+        { state: 'pending', text: 'Buscando emisor existente (prefijo ' + alias + ')...' }
+    ]);
+
+    try {
+
+        const response = await postJSON(API.consultaEmisor, { prefijo: alias });
+        const data = await leerJson(response);
+
+        const existe = data && data.resultado === true && data.emisor;
+        if (!existe) {
+            renderChecklist('checklistEmisor', [
+                { state: 'error', text: 'No se encontró un emisor registrado con ese NIT y estado. Si es nuevo, use "Registrar Emisor".' }
+            ]);
+            return;
+        }
+
+        const em = data.emisor;
+
+        // Reconstruir datos, prefiriendo lo que devuelve el certificador y
+        // cayendo a los campos del formulario si el certificador no los trae.
+        datosEmisorConfirmado = {
+            nombre:  em.nombre_comercial || document.getElementById('comercial').value.trim(),
+            empresa: em.nombre_emisor    || document.getElementById('nombre').value.trim(),
+            correo:  em.correo           || document.getElementById('correo').value.trim(),
+            alias:   em.prefijo || alias,
+            nit:     nit,
+            iva:     em.afiliacion_iva   || document.getElementById('iva').value,
+            estado:  estado
+        };
+
+        const firmaConfirmada = em.firma && em.firma.resultado === true;
+
+        if (firmaConfirmada) {
+            // La firma ya está: saltar directo a la verificación final, que ya
+            // trae llave, token, establecimientos y frases para el PDF.
+            renderChecklist('checklistEmisor', [
+                { state: 'done', text: 'Emisor encontrado (prefijo ' + datosEmisorConfirmado.alias + ')' },
+                { state: 'done', text: 'La firma ya está cargada; continuando a la verificación.' }
+            ]);
+            document.getElementById('cardFirma').style.display = 'none';
+            document.getElementById('cardVerificacionFinal').style.display = 'block';
+            avanzarStepper(3);
+            document.getElementById('cardVerificacionFinal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            await verificarFirmaYObtenerDatos();
+            return;
+        }
+
+        // Firma pendiente: la carga de firma necesita nombre, empresa y correo.
+        if (!datosEmisorConfirmado.nombre || !datosEmisorConfirmado.empresa || !datosEmisorConfirmado.correo) {
+            renderChecklist('checklistEmisor', [
+                { state: 'done', text: 'Emisor encontrado (prefijo ' + datosEmisorConfirmado.alias + ')' },
+                { state: 'error', text: 'Para cargar la firma, complete arriba Nombre Emisor, Nombre Comercial y Correo, y presione "Retomar emisor existente" de nuevo.' }
+            ]);
+            return;
+        }
+
+        renderChecklist('checklistEmisor', [
+            { state: 'done', text: 'Emisor encontrado (prefijo ' + datosEmisorConfirmado.alias + ')' },
+            { state: 'pending', text: 'La firma está pendiente. Continúe con la carga de firma abajo.' }
+        ]);
+        document.getElementById('cardFirma').style.display = 'block';
+        avanzarStepper(2);
+        document.getElementById('cardFirma').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    } catch (error) {
+
+        const texto = error.noJson ? error.message : ('Error al buscar el emisor: ' + error.message);
+        renderChecklist('checklistEmisor', [
+            { state: 'error', text: texto }
+        ]);
+
+    } finally {
+
+        setBotonCargando('btnRetomar', false);
+    }
+}
+
+function archivoABase64(archivo) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            const resultado = reader.result;
+            const base64 = resultado.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo PFX.'));
+        reader.readAsDataURL(archivo);
+    });
+}
+
+async function registrarFirma() {
+
+    if (!datosEmisorConfirmado) {
+        alert('Primero debe completar el registro del emisor exitosamente.');
+        return;
+    }
+
+    const inputArchivo = document.getElementById('archivoPfx');
+    const passwordPfx = document.getElementById('passwordPfx').value;
+
+    if (!inputArchivo.files || inputArchivo.files.length === 0) {
+        alert('Debe seleccionar el archivo PFX/P12.');
+        return;
+    }
+
+    if (!passwordPfx) {
+        alert('Debe ingresar la contraseña del PFX.');
+        return;
+    }
+
+    const archivo = inputArchivo.files[0];
+
+    setBotonCargando('btnFirma', true);
+    document.getElementById('techFirmaWrap').style.display = 'none';
+    renderChecklist('checklistFirma', [
+        { state: 'pending', text: 'Leyendo y convirtiendo el archivo PFX...' }
+    ]);
+
+    try {
+
+        const pfxBase64 = await archivoABase64(archivo);
+        const pfxConPrefijo = 'base64,' + pfxBase64;
+
+        const payload = {
+            nombre:       datosEmisorConfirmado.nombre,
+            empresa:      datosEmisorConfirmado.empresa,
+            correo:       datosEmisorConfirmado.correo,
+            alias:        datosEmisorConfirmado.alias,
+            nit:          datosEmisorConfirmado.nit,
+            pfx:          pfxConPrefijo,
+            password_pfx: passwordPfx
+        };
+
+        renderChecklist('checklistFirma', [
+            { state: 'done', text: 'Archivo PFX leído correctamente' },
+            { state: 'pending', text: 'Enviando solicitud de firma...' }
+        ]);
+
+        const response = await postJSON(API.firma, payload);
+
+        const data = await leerJson(response);
+
+        mostrarTecnico('techFirmaWrap', 'techFirma', JSON.stringify(data, null, 4));
+
+        // La carga del PFX puede quedar "en proceso" del lado del API,
+        // así que el estado real y definitivo se confirma consultando
+        // datos_emisor. Por eso, sin importar la respuesta inmediata de
+        // este endpoint, pasamos automáticamente a verificarlo.
+        renderChecklist('checklistFirma', [
+            { state: 'done', text: 'Archivo PFX leído correctamente' },
+            { state: 'done', text: 'Solicitud de firma enviada al certificador' }
+        ]);
+
+        document.getElementById('cardVerificacionFinal').style.display = 'block';
+        avanzarStepper(3);
+        document.getElementById('cardVerificacionFinal').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        verificarFirmaYObtenerDatos();
+
+    } catch (error) {
+
+        renderChecklist('checklistFirma', [
+            { state: 'error', text: 'Error al consumir el API de firma: ' + error.message }
+        ]);
+
+    } finally {
+
+        setBotonCargando('btnFirma', false);
+    }
+}
+
+// Datos finales recopilados de Consulta Emisor / Establecimientos / Frases,
+// listos para armar el PDF de credenciales.
+let datosFinales = null;
+
+async function verificarFirmaYObtenerDatos() {
+
+    const btnReintentar = document.getElementById('btnReintentarFirma');
+    const bloqueDescarga = document.getElementById('bloqueDescarga');
+
+    if (!datosEmisorConfirmado) {
+        return;
+    }
+
+    btnReintentar.style.display = 'none';
+    bloqueDescarga.style.display = 'none';
+    setBotonCargando('btnReintentarFirma', true);
+
+    renderChecklist('checklistVerificacion', [
+        { state: 'pending', text: 'Verificando estado de la firma...' }
+    ]);
+
+    try {
+
+        const response = await postJSON(API.consultaEmisor, { prefijo: datosEmisorConfirmado.alias });
+
+        const data = await leerJson(response);
+
+        const firmaOk =
+            data && data.resultado === true &&
+            data.emisor && data.emisor.firma &&
+            data.emisor.firma.resultado === true;
+
+        if (!firmaOk) {
+            renderChecklist('checklistVerificacion', [
+                { state: 'error', text: 'La firma aún no está confirmada. Puede tardar unos minutos en procesarse del lado del certificador.' }
+            ]);
+            btnReintentar.style.display = 'inline-flex';
+            return;
+        }
+
+        const descripcionFirma = data.emisor.firma.descripcion || {};
+
+        datosFinales = {
+            llaveEmisor:       data.emisor.llave,
+            tokenFirma:        descripcionFirma.token_firma || '-',
+            fechaVencimiento:  descripcionFirma.fecha_vencimiento || '-',
+            establecimientos:  [],
+            frases:            []
+        };
+
+        renderChecklist('checklistVerificacion', [
+            { state: 'done', text: 'Firma confirmada por el certificador' },
+            { state: 'pending', text: 'Consultando establecimientos y frases...' }
+        ]);
+
+        await cargarEstablecimientosYFrases();
+
+    } catch (error) {
+
+        renderChecklist('checklistVerificacion', [
+            { state: 'error', text: 'Error al verificar la firma: ' + error.message }
+        ]);
+        btnReintentar.style.display = 'inline-flex';
+
+    } finally {
+
+        setBotonCargando('btnReintentarFirma', false);
+    }
+}
+
+async function cargarEstablecimientosYFrases() {
+
+    const bloqueDescarga = document.getElementById('bloqueDescarga');
+
+    const bodyConsulta = {
+        nit:     datosEmisorConfirmado.nit,
+        prefijo: datosEmisorConfirmado.alias,
+        llave:   datosFinales.llaveEmisor
+    };
+
+    try {
+
+        const [respEsts, respFrases] = await Promise.all([
+            postJSON(API.establecimientos, bodyConsulta),
+            postJSON(API.frases, bodyConsulta)
+        ]);
+
+        const dataEsts = await leerJson(respEsts);
+        const dataFrases = await leerJson(respFrases);
+
+        datosFinales.establecimientos = (dataEsts && dataEsts.establecimientos) || [];
+        datosFinales.frases = (dataFrases && dataFrases.frases) || [];
+
+        renderChecklist('checklistVerificacion', [
+            { state: 'done', text: 'Firma confirmada por el certificador' },
+            { state: 'done', text: datosFinales.establecimientos.length + ' establecimiento(s) obtenido(s)' },
+            { state: 'done', text: datosFinales.frases.length + ' frase(s) obtenida(s)' },
+            { state: 'done', text: 'Credenciales listas — ya puede generar el PDF' }
+        ]);
+
+        bloqueDescarga.style.display = 'flex';
+
+    } catch (error) {
+
+        renderChecklist('checklistVerificacion', [
+            { state: 'done', text: 'Firma confirmada por el certificador' },
+            { state: 'error', text: 'Error al consultar establecimientos/frases: ' + error.message }
+        ]);
+    }
+}
+
+// Escapa texto antes de insertarlo como HTML, para evitar que un valor
+// con <, >, & o comillas (viniendo de la API) rompa el layout del PDF
+// o inyecte markup.
+function escapeHtml(valor) {
+    if (valor === null || valor === undefined || valor === '') return '-';
+    return String(valor)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function drawTabla(headers, filas) {
+    if (!filas || filas.length === 0) return '<p>-</p>';
+    let h = '<table><thead><tr>';
+    headers.forEach(header => h += `<th>${escapeHtml(header)}</th>`);
+    h += '</tr></thead><tbody>';
+    filas.forEach(fila => {
+        h += '<tr>';
+        fila.forEach(valor => h += `<td>${escapeHtml(valor)}</td>`);
+        h += '</tr>';
+    });
+    return h + '</tbody></table>';
+}
+
+function generarContenidoPDF() {
+
+    const s = STRINGS[lang];
+    const esProduccion = datosEmisorConfirmado.estado === 'PRODUCCION';
+
+    document.getElementById('pdf-main-title').textContent = esProduccion ? s.pdfTitleProd : s.pdfTitleTest;
+    document.getElementById('pdf-footer-text').textContent = esProduccion ? s.footerProd : s.footerTest;
+    document.getElementById('sec-auth').textContent = s.secAuth;
+    document.getElementById('sec-phrases').textContent = s.secPhrases;
+    document.getElementById('sec-ests').textContent = s.secEsts;
+    document.getElementById('ep-cert-title').textContent = s.epCertTitle;
+    document.getElementById('ep-nit-title').textContent = s.epNitTitle;
+
+    document.getElementById('out_cliente').innerText = datosEmisorConfirmado.nombre;
+    document.getElementById('out_iva').innerText = s.ivaLabel + datosEmisorConfirmado.iva;
+
+    document.getElementById('out_auth').innerHTML = `
+        <div class="cred-grid">
+            <div class="cred-card">
+                <div class="cred-label">${s.credNit}</div>
+                <div class="cred-value">${escapeHtml(datosEmisorConfirmado.nit)}</div>
+            </div>
+            <div class="cred-card">
+                <div class="cred-label">${s.credAlias}</div>
+                <div class="cred-value">${escapeHtml(datosEmisorConfirmado.alias)}</div>
+            </div>
+            <div class="cred-card">
+                <div class="cred-label">${s.credCorreo}</div>
+                <div class="cred-value">${escapeHtml(datosEmisorConfirmado.correo)}</div>
+            </div>
+            <div class="cred-card full-width">
+                <div class="cred-label">${s.credLlaveApi}</div>
+                <div class="cred-value">${escapeHtml(datosFinales.llaveEmisor)}</div>
+            </div>
+            <div class="cred-card full-width">
+                <div class="cred-label">${s.credTokenFirma}</div>
+                <div class="cred-value">${escapeHtml(datosFinales.tokenFirma)}</div>
+                <div class="firma-details">
+                    <div class="firma-detail-item">
+                        <span class="detail-label">${s.credVencimiento}</span>
+                        <span class="detail-value">${escapeHtml(datosFinales.fechaVencimiento)}</span>
+                    </div>
+                    <div class="firma-detail-item">
+                        <span class="detail-label">${s.credEstado}</span>
+                        <span class="detail-value">${escapeHtml(datosEmisorConfirmado.estado)}</span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+
+    // La descripción se resuelve con el mapa de frases oficial según Tipo|Escenario.
+    const filasFrases = datosFinales.frases.map((f, i) => [
+        i + 1,
+        obtenerTextoPorTipoEscenario(f.tipo, f.escenario),
+        f.tipo,
+        f.escenario,
+        f.numeroResolucion,
+        f.fechaResolucion
+    ]);
+
+    document.getElementById('out_phrases').innerHTML = drawTabla(s.phrasesHeaders, filasFrases);
+
+    // Nota: por instrucción del cliente, se omiten los campos de
+    // Clasificación y Tipo de establecimiento (la API no los retorna
+    // para este flujo).
+    const filasEsts = datosFinales.establecimientos.map(e => [
+        e.codigo_establecimiento,
+        e.nombre_comercial,
+        e.direccion,
+        e.estado
+    ]);
+
+    document.getElementById('out_ests').innerHTML = drawTabla(s.estsHeaders, filasEsts);
+}
+
+function descargarCredenciales() {
+
+    if (!datosEmisorConfirmado || !datosFinales) {
+        alert('Aún no se ha completado la verificación final.');
+        return;
+    }
+
+    generarContenidoPDF();
+
+    const s = STRINGS[lang];
+    const esProduccion = datosEmisorConfirmado.estado === 'PRODUCCION';
+    const originalTitle = document.title;
+    document.title = `${esProduccion ? s.pdfTitleProd : s.pdfTitleTest} - ${datosEmisorConfirmado.nit}`;
+    window.print();
+    document.title = originalTitle;
+}
+
+// Fuerza limpieza del NIT mientras se escribe
+document.getElementById('nit').addEventListener('input', function() {
+
+    let valor = this.value.toUpperCase();
+
+    valor = valor.replace(/[^0-9K]/g, '');
+
+    const kIndex = valor.indexOf('K');
+
+    if (kIndex !== -1) {
+        valor = valor.replace(/K/g, '');
+        valor = valor + 'K';
+    }
+
+    this.value = valor;
+});
+
+// Permite iniciar sesión con Enter desde los campos de login.
+['loginUsuario', 'loginPassword'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') iniciarSesion();
+    });
+});
+
+// Al cargar: decide si mostrar login o la app según la sesión.
+verificarSesion();
+
+</script>
+
+</body>
+</html>
