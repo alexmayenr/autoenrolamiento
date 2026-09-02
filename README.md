@@ -1,120 +1,122 @@
 # Autoenrolamiento de Emisor · Infile (Vercel)
 
-Portal de autoservicio para enrolar emisores en el certificador FEL. Versión
-migrada de PHP a funciones serverless de Vercel.
+Portal **interno** para que los asesores de Implementaciones enrolen emisores
+en el certificador FEL. Cada asesor inicia sesión con su propio usuario y usa
+sus propias credenciales del certificador.
 
 ## Estructura
 
 ```
 /
-├── index.html                 Frontend (antes index.php)
+├── index.html                 Frontend (login + flujo de enrolamiento)
 ├── assets/                    Logos e íconos
 ├── api/
-│   ├── _lib/forward.js        Helper compartido (privado, no es endpoint)
-│   ├── registrar-emisor.js    ← proxy.php
-│   ├── consulta-emisor.js     ← proxy_consulta_emisor.php
-│   ├── establecimientos.js    ← proxy_establecimientos.php
-│   ├── frases.js              ← proxy_frases.php
-│   └── firma.js               ← proxy_firma.php
+│   ├── _lib/
+│   │   ├── forward.js         Utilidades (método, body, reenvío al certificador)
+│   │   └── auth.js            Sesión: hash de contraseña, cookie firmada, usuarios
+│   ├── login.js               Inicia sesión y emite la cookie
+│   ├── logout.js              Cierra sesión
+│   ├── me.js                  Indica si hay sesión (sin exponer credenciales)
+│   ├── registrar-emisor.js    Registro de emisor
+│   ├── consulta-emisor.js     Datos del emisor
+│   ├── establecimientos.js    Establecimientos autorizados
+│   ├── frases.js              Frases obligatorias
+│   └── firma.js               Registro del certificado (PFX)
+├── scripts/hash-password.js   Genera el hash de una contraseña
+├── package.json               Declara ESM (type: module), sin dependencias
 ├── vercel.json                Config (maxDuration para firma)
 ├── .env.example               Plantilla de variables de entorno
 └── .gitignore
 ```
 
-Cada `proxy_*.php` se convirtió en una función serverless equivalente. El
-frontend es el mismo, solo cambian las llamadas: antes `fetch('proxy.php')`,
-ahora `fetch('/api/registrar-emisor')`.
+## Cómo funciona la autenticación (sin base de datos)
 
-## Qué cambió respecto a la versión PHP
+Para un grupo fijo de 5 asesores no hace falta base de datos:
 
-- **Credenciales fuera del código.** `PARTNER_LLAVE` y `SIGNER_LLAVE_ACCESO`
-  ya no están escritas en los archivos; se leen de variables de entorno de
-  Vercel y no se suben al repo.
-- **Sin duplicación.** Los 5 proxies compartían el mismo boilerplate; ahora
-  vive una sola vez en `api/_lib/forward.js`.
-- **Headers unificados.** Los proxies mezclaban `PREFIJO`/`prefijo`; ahora
-  todos usan mayúsculas.
-- **Salida escapada.** El PDF ahora escapa los valores antes de insertarlos
-  como HTML (evita que una dirección con `<` o `&` rompa el layout).
+- **Los usuarios** viven en la variable de entorno `USERS` (un JSON). Cada
+  asesor tiene su `prefijo`, `llave` y `signerLlave` propios, más el hash de
+  su contraseña.
+- **Las sesiones** son cookies firmadas con HMAC (stateless). El servidor no
+  guarda nada; verifica la firma en cada petición.
+- **Las credenciales del certificador nunca llegan al navegador.** El asesor
+  manda usuario y contraseña; el servidor resuelve qué credenciales usar según
+  quién inició sesión.
 
-## Subir a GitHub
+Flujo: `login` verifica contra `USERS` y deja una cookie `session` (httpOnly,
+SameSite=Strict, Secure). Cada función lee esa cookie, identifica al asesor y
+usa **sus** credenciales para llamar al certificador. Sin sesión válida → 401.
 
-Desde la carpeta del proyecto:
+> Vercel Authentication (la protección de despliegue) sirve como control de
+> acceso, pero no le dice a tus funciones **quién** entró, por eso el login
+> vive en la app. Puedes activar además Vercel Authentication como capa extra.
+
+## Variables de entorno
+
+En **Project → Settings → Environment Variables**:
+
+| Variable         | Qué es                                                        |
+|------------------|--------------------------------------------------------------|
+| `SESSION_SECRET` | Valor aleatorio largo para firmar las cookies                |
+| `USERS`          | JSON con los asesores y sus credenciales (ver abajo)         |
+
+Genera el secreto de sesión:
 
 ```bash
-git init
-git add .
-git commit -m "Autoenrolamiento FEL - versión Vercel serverless"
-git branch -M main
-git remote add origin https://github.com/TU_USUARIO/TU_REPO.git
-git push -u origin main
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-El `.gitignore` ya evita que se suban `.env` y `node_modules`.
+Genera el hash de cada contraseña:
+
+```bash
+node scripts/hash-password.js "laContraseñaDelAsesor"
+```
+
+Arma el JSON de `USERS` (pégalo en UNA línea en Vercel):
+
+```json
+{
+  "amayen": { "nombre": "Alex Mayén", "hash": "scrypt$...", "prefijo": "...", "llave": "...", "signerLlave": "..." },
+  "jlopez": { "nombre": "Juan Pablo", "hash": "scrypt$...", "prefijo": "...", "llave": "...", "signerLlave": "..." }
+}
+```
+
+Los `usuario` (las llaves del JSON: `amayen`, `jlopez`, ...) son con los que
+cada asesor inicia sesión.
+
+> Las llaves que estaban hardcodeadas en los proxies PHP originales deben
+> considerarse comprometidas: **rótalas** antes de ponerlas aquí.
 
 ## Desplegar en Vercel
 
-1. En Vercel: **Add New → Project** e importa el repo de GitHub.
-2. Framework Preset: **Other** (no hay build step; es HTML estático + funciones).
-3. Antes de desplegar, configura las variables de entorno (siguiente sección).
-4. Deploy. Los `push` posteriores a `main` redesplegarán solo.
-
-### Variables de entorno
-
-En **Project → Settings → Environment Variables**, agrega:
-
-| Variable              | Valor                                   |
-|-----------------------|-----------------------------------------|
-| `PARTNER_PREFIJO`     | `IMPLEMENTACIONES_AE`                    |
-| `PARTNER_LLAVE`       | (la llave de partner)                   |
-| `SIGNER_LLAVE_ACCESO` | (la llave de acceso del signer)         |
-| `APP_ACCESS_TOKEN`    | (opcional — ver "Control de acceso")    |
-
-> Los valores reales estaban hardcodeados en los proxies PHP. Considéralos
-> comprometidos: convendría **rotarlos** antes de reusarlos aquí.
+1. **Add New → Project** e importa el repo.
+2. Framework Preset: **Other** (no hay build step).
+3. Carga las variables de entorno (`SESSION_SECRET`, `USERS`).
+4. Deploy. Los `push` a `main` redesplegan solo.
 
 ### Plan y Fluid compute
 
-- **Plan Pro (no Hobby).** El plan Hobby de Vercel no permite uso comercial;
-  como esta es una herramienta de Infile, va en un proyecto Pro.
-- **Fluid compute activo.** La función de firma tarda (hasta 90s). Fluid
-  compute (activo por defecto en proyectos nuevos) permite ejecuciones largas;
-  `vercel.json` fija `maxDuration: 120` para `api/firma.js`. Si la firma diera
-  timeout, confirma que Fluid compute esté activado en Settings → Functions.
-
-## Control de acceso (importante)
-
-El portal es de autoservicio, así que hay que decidir quién puede llegar a él.
-Hay dos capas, y conviene entender qué protege cada una:
-
-1. **`APP_ACCESS_TOKEN` (defensa en profundidad).** Si defines esta variable,
-   las funciones exigen el header `x-app-token`. Debes poner el mismo valor en
-   la constante `APP_ACCESS_TOKEN` dentro de `index.html`. Esto frena bots y
-   accesos automáticos que escanean endpoints, **pero** como el token vive en
-   el JavaScript del navegador, cualquiera que abra el portal puede leerlo.
-   No es control de acceso real.
-
-2. **Protección a nivel de despliegue (el control real).** Se configura en
-   **Settings → Deployment Protection**:
-   - **Vercel Authentication** (gratis, todos los planes): solo usuarios con
-     cuenta de Vercel del equipo pueden entrar. Ideal si el portal es interno.
-   - **Password Protection** (add-on de Pro, o Enterprise): pide contraseña
-     antes de cargar el sitio. Útil si lo usan personas sin cuenta de Vercel.
-
-   Esta capa protege la página **antes** de que cargue, así que también
-   protege las funciones del API. Es la que realmente decide quién entra.
-
-**Recomendación:** si es interno, activa Vercel Authentication y listo. Si
-necesita abrirse a clientes, usa Password Protection y deja el token como capa
-extra.
+- **Plan Pro (no Hobby).** Hobby no permite uso comercial; esta es una
+  herramienta de Infile.
+- **Fluid compute activo.** La firma tarda (hasta 90s). `vercel.json` fija
+  `maxDuration: 120` para `api/firma.js`. Si diera timeout, confirma que Fluid
+  compute esté activo en Settings → Functions.
 
 ## Desarrollo local
 
 ```bash
-npm i -g vercel        # una sola vez
-cp .env.example .env.local   # y coloca los valores reales
-vercel dev             # levanta frontend + funciones en localhost
+npm i -g vercel
+cp .env.example .env.local   # coloca SESSION_SECRET y USERS reales
+vercel dev
 ```
 
-No hay dependencias que instalar: las funciones usan el `fetch` nativo de
+No hay dependencias que instalar: se usa el `fetch` y el `crypto` nativos de
 Node.js.
+
+## Notas de seguridad
+
+- Contraseñas guardadas como hash scrypt, nunca en texto plano.
+- Cookie de sesión httpOnly (no accesible desde JavaScript del navegador).
+- El endpoint `me` nunca devuelve credenciales, solo usuario y nombre.
+- Considera activar Vercel Authentication como capa adicional de acceso.
+- Login sin límite de intentos: para 5 usuarios internos el riesgo es bajo;
+  si el portal se expone más, conviene agregar rate limiting.

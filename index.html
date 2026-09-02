@@ -691,6 +691,86 @@
             letter-spacing: .06em;
         }
 
+        /* ── Login ─────────────────────────────────────────────── */
+        .login-shell {
+            max-width: 380px;
+            margin: 0 auto;
+            padding: 64px 20px 60px;
+        }
+
+        .login-card {
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 30px 26px 28px;
+            box-shadow: 0 18px 40px -20px rgba(0, 77, 152, .4);
+        }
+
+        .login-logo {
+            display: block;
+            height: 34px;
+            width: auto;
+            margin: 0 auto 18px;
+        }
+
+        .login-card h1 {
+            margin: 0 0 4px;
+            font-size: 18px;
+            font-weight: 800;
+            text-align: center;
+            color: var(--brand);
+            letter-spacing: -.01em;
+        }
+
+        .login-card p.login-sub {
+            margin: 0 0 22px;
+            font-size: 12.5px;
+            color: var(--muted);
+            text-align: center;
+        }
+
+        .login-error {
+            display: none;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: var(--danger);
+            font-size: 12.5px;
+            font-weight: 500;
+            border-radius: 8px;
+            padding: 9px 12px;
+            margin-bottom: 14px;
+        }
+
+        .hero-user {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .hero-user .hero-user-name {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: rgba(255, 255, 255, .92);
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, .15);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .3);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, .28);
+        }
+
         @media print {
             @page {
                 margin: 0;
@@ -721,7 +801,37 @@
 </head>
 <body>
 
-<div class="app-shell no-print">
+<!-- ── Pantalla de login (se muestra hasta que haya sesión) ── -->
+<div class="login-shell no-print" id="loginShell" style="display:none;">
+    <div class="login-card">
+        <img class="login-logo" src="assets/infile-logo-full.png" alt="Infile"
+             onerror="this.style.display='none'">
+        <h1>Autoenrolamiento de Emisor</h1>
+        <p class="login-sub">Ingrese con sus credenciales de asesor.</p>
+
+        <div class="login-error" id="loginError"></div>
+
+        <div class="form-grid">
+            <div class="field">
+                <label class="required" for="loginUsuario">Usuario</label>
+                <input type="text" id="loginUsuario" autocomplete="username" required>
+            </div>
+            <div class="field">
+                <label class="required" for="loginPassword">Contraseña</label>
+                <input type="password" id="loginPassword" autocomplete="current-password" required>
+            </div>
+        </div>
+
+        <div class="panel-actions">
+            <button class="btn btn-primary" id="btnLogin" onclick="iniciarSesion()">
+                <span class="btn-label">Ingresar</span>
+                <span class="btn-spinner"></span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="app-shell no-print" id="appShell" style="display:none;">
 
     <header class="app-hero">
         <img class="hero-logo" src="assets/infile-logo-full-white.png" alt="Infile"
@@ -729,6 +839,10 @@
         <div class="hero-text">
             <h1>Autoenrolamiento de Emisor</h1>
             <p>Certificación FEL · Portal de autoservicio</p>
+        </div>
+        <div class="hero-user">
+            <span class="hero-user-name" id="heroUserName"></span>
+            <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </header>
 
@@ -992,30 +1106,91 @@ const API = {
     consultaEmisor:   '/api/consulta-emisor',
     establecimientos: '/api/establecimientos',
     frases:           '/api/frases',
+    login:            '/api/login',
+    logout:           '/api/logout',
+    me:               '/api/me',
 };
 
-// Token de acceso opcional (defensa en profundidad). Si en Vercel
-// defines la variable APP_ACCESS_TOKEN, debes poner AQUÍ el MISMO valor
-// para que las funciones acepten las peticiones. Si lo dejas vacío, las
-// funciones responden sin exigir token.
-//
-// NOTA IMPORTANTE: al vivir en el navegador, este token es visible para
-// cualquiera que abra el portal. Sirve para frenar bots y accesos
-// automáticos casuales, NO como control de acceso real. El control de
-// acceso de verdad se hace a nivel de despliegue (ver README).
-const APP_ACCESS_TOKEN = '';
-
-// Wrapper único para todas las llamadas POST JSON al API.
+// Wrapper para llamadas POST JSON. La cookie de sesión (httpOnly) viaja
+// automáticamente por ser mismo origen; el navegador no la maneja.
+// Si el servidor responde 401, la sesión expiró: se regresa al login.
 async function postJSON(url, payload) {
-    const headers = { 'Content-Type': 'application/json' };
-    if (APP_ACCESS_TOKEN) {
-        headers['x-app-token'] = APP_ACCESS_TOKEN;
-    }
-    return fetch(url, {
+    const resp = await fetch(url, {
         method: 'POST',
-        headers: headers,
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
     });
+    if (resp.status === 401 && url !== API.login) {
+        mostrarLogin();
+        throw new Error('Su sesión expiró. Vuelva a iniciar sesión.');
+    }
+    return resp;
+}
+
+// ── Sesión / Login ──────────────────────────────────────────
+function mostrarLogin() {
+    document.getElementById('appShell').style.display = 'none';
+    document.getElementById('loginShell').style.display = 'block';
+}
+
+function mostrarApp(nombre) {
+    document.getElementById('loginShell').style.display = 'none';
+    document.getElementById('appShell').style.display = 'block';
+    document.getElementById('heroUserName').textContent = nombre || '';
+}
+
+async function verificarSesion() {
+    try {
+        const resp = await fetch(API.me);
+        const data = await resp.json();
+        if (data && data.autenticado) {
+            mostrarApp(data.nombre);
+        } else {
+            mostrarLogin();
+        }
+    } catch {
+        mostrarLogin();
+    }
+}
+
+async function iniciarSesion() {
+    const usuario = document.getElementById('loginUsuario').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const errorBox = document.getElementById('loginError');
+    errorBox.style.display = 'none';
+
+    if (!usuario || !password) {
+        errorBox.textContent = 'Ingrese usuario y contraseña.';
+        errorBox.style.display = 'block';
+        return;
+    }
+
+    setBotonCargando('btnLogin', true);
+    try {
+        const resp = await postJSON(API.login, { usuario, password });
+        const data = await resp.json();
+        if (resp.ok && data.ok) {
+            document.getElementById('loginPassword').value = '';
+            mostrarApp(data.nombre);
+        } else {
+            errorBox.textContent = (data && data.error) || 'No se pudo iniciar sesión.';
+            errorBox.style.display = 'block';
+        }
+    } catch (e) {
+        errorBox.textContent = 'Error de conexión: ' + e.message;
+        errorBox.style.display = 'block';
+    } finally {
+        setBotonCargando('btnLogin', false);
+    }
+}
+
+async function cerrarSesion() {
+    try {
+        await fetch(API.logout, { method: 'POST' });
+    } catch {
+        // aunque falle la llamada, regresamos al login
+    }
+    mostrarLogin();
 }
 
 // ── i18n strings para el PDF ────────────────────────────────
@@ -1715,6 +1890,16 @@ document.getElementById('nit').addEventListener('input', function() {
 
     this.value = valor;
 });
+
+// Permite iniciar sesión con Enter desde los campos de login.
+['loginUsuario', 'loginPassword'].forEach(function (id) {
+    document.getElementById(id).addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') iniciarSesion();
+    });
+});
+
+// Al cargar: decide si mostrar login o la app según la sesión.
+verificarSesion();
 
 </script>
 
