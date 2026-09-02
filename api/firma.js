@@ -1,5 +1,6 @@
 // api/firma.js — registro del certificado (PFX) del emisor.
-// Usa la llave del signer del asesor autenticado.
+// La llave del signer es compartida (SIGNER_LLAVE). Se permite override
+// por usuario (user.signerLlave) por si algún día alguno tiene la suya.
 import { ensurePostMethod, readJsonBody, requireFields, forward } from './_lib/forward.js';
 import { requireUser } from './_lib/auth.js';
 
@@ -14,8 +15,9 @@ export default async function handler(req, res) {
   const user = requireUser(req, res);
   if (!user) return;
 
-  if (!user.signerLlave) {
-    res.status(500).json({ error: 'El asesor no tiene configurada la llave del signer.' });
+  const signerLlave = user.signerLlave || process.env.SIGNER_LLAVE;
+  if (!signerLlave) {
+    res.status(500).json({ error: 'No hay llave de firma configurada (SIGNER_LLAVE).' });
     return;
   }
 
@@ -26,7 +28,7 @@ export default async function handler(req, res) {
   if (!requireFields(res, body, requeridos)) return;
 
   const payload = {
-    llave_acceso: user.signerLlave,
+    llave_acceso: signerLlave,
     solicitud: {
       nombre: body.nombre,
       empresa: body.empresa,
