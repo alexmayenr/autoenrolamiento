@@ -1,7 +1,6 @@
 // api/logout.js
 import { ensurePostMethod } from './_lib/forward.js';
 import { clearSessionCookie } from './_lib/auth.js';
-
 export default async function handler(req, res) {
   if (!ensurePostMethod(req, res)) return;
   clearSessionCookie(req, res);
