@@ -1,10 +1,7 @@
 {
-  "name": "autoenrolamiento",
-  "version": "2.0.0",
+  "name": "autoenrolamiento-partners",
+  "version": "1.0.0-beta",
   "private": true,
   "type": "module",
-  "description": "Portal interno de autoenrolamiento de emisores FEL (Infile) - multiusuario",
-  "scripts": {
-    "hash": "node scripts/hash-password.js"
-  }
+  "description": "Portal externo multi-partner de autoenrolamiento FEL (Infile) — con modo demo e historial, sobre Supabase."
 }

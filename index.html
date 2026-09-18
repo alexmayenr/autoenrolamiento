@@ -784,6 +784,113 @@
             background: rgba(255, 255, 255, .28);
         }
 
+        .demo-badge {
+            align-self: center;
+            background: #FFC000;
+            color: #0E2841;
+            font-size: 11px;
+            font-weight: 800;
+            letter-spacing: .06em;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-left: 14px;
+        }
+
+        .btn-hist {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(255, 255, 255, .12);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, .28);
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background .2s ease;
+        }
+        .btn-hist:hover { background: rgba(255, 255, 255, .24); }
+        .btn-hist-ico { font-size: 13px; line-height: 1; }
+
+        .hist-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(14, 40, 65, .45);
+            z-index: 40;
+        }
+        .hist-overlay.open { display: block; }
+
+        .hist-drawer {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: min(560px, 94vw);
+            background: #fff;
+            box-shadow: -12px 0 40px -18px rgba(14, 40, 65, .55);
+            z-index: 41;
+            transform: translateX(100%);
+            transition: transform .22s ease;
+            display: flex;
+            flex-direction: column;
+        }
+        .hist-drawer.open { transform: translateX(0); }
+
+        .hist-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border);
+        }
+        .hist-head h2 { margin: 0; font-size: 17px; color: var(--brand); }
+        .hist-close {
+            background: none; border: none; font-size: 26px; line-height: 1;
+            color: var(--muted); cursor: pointer; padding: 0 4px;
+        }
+
+        .hist-tabs { display: flex; gap: 4px; padding: 10px 20px 0; }
+        .hist-tab {
+            background: none; border: none; border-bottom: 2px solid transparent;
+            padding: 8px 12px; font-family: inherit; font-size: 13px; font-weight: 600;
+            color: var(--muted); cursor: pointer;
+        }
+        .hist-tab.active { color: var(--brand); border-bottom-color: var(--brand); }
+
+        .hist-controls {
+            display: flex; gap: 10px; align-items: center;
+            padding: 12px 20px; border-bottom: 1px solid var(--border);
+        }
+        .hist-controls input[type=text] { flex: 1; }
+        .hist-check {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 12px; color: var(--muted); white-space: nowrap;
+        }
+
+        .hist-body { flex: 1; overflow-y: auto; padding: 8px 20px 24px; }
+        .hist-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 30px 0; }
+
+        .hist-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+        .hist-table th {
+            text-align: left; color: var(--muted); font-weight: 600;
+            padding: 8px 8px; border-bottom: 1px solid var(--border);
+            position: sticky; top: 0; background: #fff;
+        }
+        .hist-table td { padding: 8px 8px; border-bottom: 1px solid #f0f2f5; }
+        .hist-table tr:hover td { background: #f7f9fb; }
+
+        .pill {
+            display: inline-block; font-size: 10.5px; font-weight: 700;
+            padding: 2px 7px; border-radius: 20px;
+        }
+        .pill-prod { background: #e6f4ec; color: #00875A; }
+        .pill-impl { background: #fff4e0; color: #9a6a00; }
+        .pill-demo { background: #fdeaea; color: #c0392b; }
+        .pill-ok   { background: #e6f4ec; color: #00875A; }
+
         @media print {
             @page {
                 margin: 0;
@@ -851,13 +958,39 @@
              onerror="this.style.display='none'">
         <div class="hero-text">
             <h1>Autoenrolamiento de Emisor</h1>
-            <p>Certificación FEL · Portal de autoservicio</p>
+            <p>Certificación FEL · Portal de Partners</p>
         </div>
+        <span class="demo-badge" id="demoBadge" style="display:none;">MODO DEMO</span>
         <div class="hero-user">
             <span class="hero-user-name" id="heroUserName"></span>
+            <button type="button" class="btn-hist" onclick="abrirHistorial()" title="Ver historial">
+                <span class="btn-hist-ico">&#128337;</span> Historial
+            </button>
             <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </header>
+
+    <!-- ── Panel de historial (drawer lateral) ── -->
+    <div class="hist-overlay" id="histOverlay" onclick="cerrarHistorial()"></div>
+    <aside class="hist-drawer" id="histDrawer" aria-hidden="true">
+        <div class="hist-head">
+            <h2>Historial</h2>
+            <button type="button" class="hist-close" onclick="cerrarHistorial()">&times;</button>
+        </div>
+        <div class="hist-tabs">
+            <button type="button" class="hist-tab active" data-tab="emisores" onclick="cambiarTabHistorial('emisores')">Emisores</button>
+            <button type="button" class="hist-tab" data-tab="log" onclick="cambiarTabHistorial('log')">Actividad</button>
+        </div>
+        <div class="hist-controls" id="histControlsEmisores">
+            <input type="text" id="histBuscar" placeholder="Buscar por NIT o nombre..." oninput="renderHistorialEmisores()">
+            <label class="hist-check">
+                <input type="checkbox" id="histIncluirDemo" onchange="cargarHistorial()"> Incluir demo
+            </label>
+        </div>
+        <div class="hist-body" id="histBody">
+            <p class="hist-empty">Cargando...</p>
+        </div>
+    </aside>
 
     <div class="stepper">
         <div class="step-node active" data-step="1">
@@ -1126,6 +1259,7 @@ const API = {
     login:            '/api/login',
     logout:           '/api/logout',
     me:               '/api/me',
+    historial:        '/api/historial',
 };
 
 // Wrapper para llamadas POST JSON. La cookie de sesión (httpOnly) viaja
@@ -1150,10 +1284,11 @@ function mostrarLogin() {
     document.getElementById('loginShell').style.display = 'block';
 }
 
-function mostrarApp(nombre) {
+function mostrarApp(nombre, modoDemo) {
     document.getElementById('loginShell').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
     document.getElementById('heroUserName').textContent = nombre || '';
+    document.getElementById('demoBadge').style.display = modoDemo ? 'inline-block' : 'none';
 }
 
 async function verificarSesion() {
@@ -1161,7 +1296,7 @@ async function verificarSesion() {
         const resp = await fetch(API.me);
         const data = await leerJson(resp);
         if (data && data.autenticado) {
-            mostrarApp(data.nombre);
+            mostrarApp(data.nombre, data.modo_demo);
         } else {
             mostrarLogin();
         }
@@ -1188,7 +1323,7 @@ async function iniciarSesion() {
         const data = await leerJson(resp);
         if (resp.ok && data.ok) {
             document.getElementById('loginPassword').value = '';
-            mostrarApp(data.nombre);
+            mostrarApp(data.nombre, data.modo_demo);
         } else {
             errorBox.textContent = (data && data.error) || 'No se pudo iniciar sesión.';
             errorBox.style.display = 'block';
@@ -2045,6 +2180,99 @@ document.getElementById('nit').addEventListener('input', function() {
         if (e.key === 'Enter') iniciarSesion();
     });
 });
+
+// ── Historial ───────────────────────────────────────────────
+let histData = { emisores: [], log: [] };
+let histTab = 'emisores';
+
+function abrirHistorial() {
+    document.getElementById('histOverlay').classList.add('open');
+    document.getElementById('histDrawer').classList.add('open');
+    document.getElementById('histDrawer').setAttribute('aria-hidden', 'false');
+    cargarHistorial();
+}
+
+function cerrarHistorial() {
+    document.getElementById('histOverlay').classList.remove('open');
+    document.getElementById('histDrawer').classList.remove('open');
+    document.getElementById('histDrawer').setAttribute('aria-hidden', 'true');
+}
+
+function cambiarTabHistorial(tab) {
+    histTab = tab;
+    document.querySelectorAll('.hist-tab').forEach(function (b) {
+        b.classList.toggle('active', b.dataset.tab === tab);
+    });
+    document.getElementById('histControlsEmisores').style.display = tab === 'emisores' ? 'flex' : 'none';
+    if (tab === 'emisores') renderHistorialEmisores();
+    else renderHistorialLog();
+}
+
+async function cargarHistorial() {
+    const body = document.getElementById('histBody');
+    body.innerHTML = '<p class="hist-empty">Cargando...</p>';
+    const incluirDemo = document.getElementById('histIncluirDemo').checked;
+    try {
+        const resp = await fetch(API.historial + (incluirDemo ? '?incluir=demo' : ''));
+        if (resp.status === 401) { mostrarLogin(); cerrarHistorial(); return; }
+        const data = await leerJson(resp);
+        histData.emisores = data.emisores || [];
+        histData.log = data.log || [];
+        if (histTab === 'emisores') renderHistorialEmisores();
+        else renderHistorialLog();
+    } catch (e) {
+        body.innerHTML = '<p class="hist-empty">No se pudo cargar el historial: ' + escapeHtml(e.message) + '</p>';
+    }
+}
+
+function pillFase(fase) {
+    const f = (fase || '').toUpperCase();
+    if (f === 'PRODUCCION') return '<span class="pill pill-prod">Producción</span>';
+    if (f === 'IMPLEMENTACION') return '<span class="pill pill-impl">Implementación</span>';
+    return escapeHtml(fase || '-');
+}
+
+function renderHistorialEmisores() {
+    const body = document.getElementById('histBody');
+    const q = (document.getElementById('histBuscar').value || '').toLowerCase().trim();
+    let filas = histData.emisores;
+    if (q) {
+        filas = filas.filter(function (e) {
+            return (e.nit || '').toLowerCase().includes(q) || (e.nombre || '').toLowerCase().includes(q);
+        });
+    }
+    if (filas.length === 0) {
+        body.innerHTML = '<p class="hist-empty">No hay emisores para mostrar.</p>';
+        return;
+    }
+    let h = '<table class="hist-table"><thead><tr><th>NIT</th><th>Nombre</th><th>Prefijo</th><th>Fase</th></tr></thead><tbody>';
+    filas.forEach(function (e) {
+        const demo = e.origen === 'demo' ? ' <span class="pill pill-demo">demo</span>' : '';
+        h += '<tr><td>' + escapeHtml(e.nit) + '</td><td>' + escapeHtml(e.nombre || '-') + demo +
+             '</td><td>' + escapeHtml(e.prefijo || '-') + '</td><td>' + pillFase(e.fase) + '</td></tr>';
+    });
+    h += '</tbody></table>';
+    body.innerHTML = h;
+}
+
+function renderHistorialLog() {
+    const body = document.getElementById('histBody');
+    const filas = histData.log;
+    if (!filas || filas.length === 0) {
+        body.innerHTML = '<p class="hist-empty">Sin actividad registrada todavía.</p>';
+        return;
+    }
+    let h = '<table class="hist-table"><thead><tr><th>Fecha</th><th>NIT</th><th>Acción</th><th>Resultado</th></tr></thead><tbody>';
+    filas.forEach(function (l) {
+        let fecha = l.creado_en || '';
+        try { fecha = new Date(l.creado_en).toLocaleString('es-GT'); } catch (e) {}
+        const res = (l.resultado === 'ok') ? '<span class="pill pill-ok">ok</span>' : escapeHtml(l.resultado || '-');
+        h += '<tr><td>' + escapeHtml(fecha) + '</td><td>' + escapeHtml(l.nit || '-') +
+             '</td><td>' + escapeHtml(l.accion || '-') + '</td><td>' + res + '</td></tr>';
+    });
+    h += '</tbody></table>';
+    body.innerHTML = h;
+}
 
 // Al cargar: decide si mostrar login o la app según la sesión.
 verificarSesion();
