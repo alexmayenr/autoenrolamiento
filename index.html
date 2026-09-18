@@ -963,7 +963,7 @@
         <span class="demo-badge" id="demoBadge" style="display:none;">MODO DEMO</span>
         <div class="hero-user">
             <span class="hero-user-name" id="heroUserName"></span>
-            <button type="button" class="btn-hist" onclick="abrirHistorial()" title="Ver historial">
+            <button type="button" class="btn-hist" id="btnHistorial" onclick="abrirHistorial()" title="Ver historial" style="display:none;">
                 <span class="btn-hist-ico">&#128337;</span> Historial
             </button>
             <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
@@ -1284,11 +1284,13 @@ function mostrarLogin() {
     document.getElementById('loginShell').style.display = 'block';
 }
 
-function mostrarApp(nombre, modoDemo) {
+function mostrarApp(nombre, modoDemo, tipo) {
     document.getElementById('loginShell').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
     document.getElementById('heroUserName').textContent = nombre || '';
     document.getElementById('demoBadge').style.display = modoDemo ? 'inline-block' : 'none';
+    // El historial y el modo demo son solo del portal de partners.
+    document.getElementById('btnHistorial').style.display = (tipo === 'partner') ? 'inline-flex' : 'none';
 }
 
 async function verificarSesion() {
@@ -1296,7 +1298,7 @@ async function verificarSesion() {
         const resp = await fetch(API.me);
         const data = await leerJson(resp);
         if (data && data.autenticado) {
-            mostrarApp(data.nombre, data.modo_demo);
+            mostrarApp(data.nombre, data.modo_demo, data.tipo);
         } else {
             mostrarLogin();
         }
@@ -1323,7 +1325,7 @@ async function iniciarSesion() {
         const data = await leerJson(resp);
         if (resp.ok && data.ok) {
             document.getElementById('loginPassword').value = '';
-            mostrarApp(data.nombre, data.modo_demo);
+            mostrarApp(data.nombre, data.modo_demo, data.tipo);
         } else {
             errorBox.textContent = (data && data.error) || 'No se pudo iniciar sesión.';
             errorBox.style.display = 'block';

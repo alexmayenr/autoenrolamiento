@@ -1,7 +1,7 @@
 {
-  "name": "autoenrolamiento-partners",
-  "version": "1.0.0-beta",
+  "name": "autoenrolamiento-unificado",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
-  "description": "Portal externo multi-partner de autoenrolamiento FEL (Infile) — con modo demo e historial, sobre Supabase."
+  "description": "Portal unico de autoenrolamiento FEL (Infile): asesores internos (USERS) y partners externos (Supabase, modo demo, historial) en una sola herramienta segun el login."
 }
