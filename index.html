@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Autoenrolamiento de Emisor · Infile</title>
+    <title>Portal de Partners · Infile</title>
     <link rel="icon" type="image/png" href="assets/infile-icon.png">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1529,7 +1529,7 @@
              onerror="this.style.display='none'">
         <div class="login-intro-content">
             <p class="login-kicker">Portal de Partners</p>
-            <h1>Gestiona el enrolamiento de tus clientes en un solo lugar.</h1>
+            <h1>Gestiona tu cartera y enrola nuevos clientes desde un solo lugar.</h1>
             <p class="login-intro-copy">
                 Registra emisores FEL, da seguimiento a su avance y consulta sus credenciales desde un portal centralizado.
             </p>
@@ -2017,6 +2017,7 @@ function seleccionarAcceso(tipo) {
 }
 
 function mostrarLogin() {
+    document.title = 'Portal de Partners · Infile';
     document.getElementById('appShell').style.display = 'none';
     document.getElementById('partnerControls').style.display = 'none';
     document.getElementById('loginShell').style.display = 'grid';
@@ -2031,6 +2032,9 @@ function mostrarApp(nombre, modoDemo, tipo) {
     const esPartner = (tipo === 'partner');
     sesionModoDemo = modoDemo === true;
     appShell.classList.toggle('partner-mode', esPartner);
+    document.title = esPartner
+        ? 'Portal de Partners · Infile'
+        : 'Autoenrolamiento de Emisor · Infile';
 
     // Cada tipo de usuario muestra sus controles dentro del hero.
     document.getElementById('partnerControls').style.display = esPartner ? 'flex' : 'none';
