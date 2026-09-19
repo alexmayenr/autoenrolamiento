@@ -100,7 +100,7 @@ export async function autenticar(usuario, password) {
   const users = loadUsers();
   const registro = users[u];
   if (registro && verifyPassword(password, registro.hash)) {
-    return { tipo: 'asesor', id: u, nombre: registro.nombre || u };
+    return { tipo: 'asesor', id: u, nombre: registro.nombre || u, modoDemo: false };
   }
 
   // 2) Partner (Supabase)
@@ -108,7 +108,12 @@ export async function autenticar(usuario, password) {
   const filas = await select('ae_partners', { filtros: { id: `eq.${idLower}`, activo: 'eq.true' }, limite: 1 });
   const partner = filas[0];
   if (partner && verifyPassword(password, partner.hash)) {
-    return { tipo: 'partner', id: partner.id, nombre: partner.nombre || partner.id };
+    return {
+      tipo: 'partner',
+      id: partner.id,
+      nombre: partner.nombre || partner.id,
+      modoDemo: partner.modo_demo === true,
+    };
   }
 
   return null;

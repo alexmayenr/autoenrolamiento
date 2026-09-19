@@ -29,5 +29,11 @@ export default async function handler(req, res) {
 
   const token = createSessionToken(actor.id, actor.tipo);
   setSessionCookie(req, res, token);
-  res.status(200).json({ ok: true, usuario: actor.id, nombre: actor.nombre, tipo: actor.tipo });
+  res.status(200).json({
+    ok: true,
+    usuario: actor.id,
+    nombre: actor.nombre,
+    tipo: actor.tipo,
+    modo_demo: actor.modoDemo === true,
+  });
 }
