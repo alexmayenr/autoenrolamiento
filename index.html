@@ -784,6 +784,41 @@
             background: rgba(255, 255, 255, .28);
         }
 
+        .partner-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            background: #fff;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 6px 18px -12px rgba(14, 40, 65, .35);
+        }
+        .pb-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .pb-title {
+            font-size: 13px; font-weight: 800; color: var(--brand);
+            letter-spacing: -.01em;
+        }
+        .pb-name {
+            font-size: 12.5px; font-weight: 700; color: var(--text);
+            background: var(--brand-lt); padding: 3px 10px; border-radius: 6px;
+        }
+        .pb-right { display: flex; align-items: center; gap: 10px; }
+        /* En la barra de partner los botones van en tono claro (fondo blanco). */
+        .partner-bar .btn-hist {
+            background: var(--brand-lt); color: var(--brand);
+            border: 1px solid var(--border);
+        }
+        .partner-bar .btn-hist:hover { filter: brightness(.97); }
+        .partner-bar .btn-logout {
+            background: #fff; color: var(--muted);
+            border: 1px solid var(--border);
+        }
+        .partner-bar .btn-logout:hover { background: #f2f5f8; }
+
         .demo-badge {
             align-self: center;
             background: #FFC000;
@@ -825,19 +860,27 @@
 
         .hist-drawer {
             position: fixed;
-            top: 0;
-            right: 0;
-            height: 100vh;
-            width: min(960px, 97vw);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(.98);
+            width: min(1040px, 94vw);
+            height: min(88vh, 920px);
             background: #fff;
-            box-shadow: -12px 0 40px -18px rgba(14, 40, 65, .55);
+            border-radius: 16px;
+            box-shadow: 0 30px 80px -20px rgba(14, 40, 65, .6);
             z-index: 41;
-            transform: translateX(100%);
-            transition: transform .22s ease;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .2s ease, transform .2s ease;
             display: flex;
             flex-direction: column;
+            overflow: hidden;
         }
-        .hist-drawer.open { transform: translateX(0); }
+        .hist-drawer.open {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translate(-50%, -50%) scale(1);
+        }
 
         .hist-head {
             display: flex;
@@ -1000,6 +1043,21 @@
 
 <div class="app-shell no-print" id="appShell" style="display:none;">
 
+    <!-- Barra de Partner (solo partners) -->
+    <div class="partner-bar" id="partnerBar" style="display:none;">
+        <div class="pb-left">
+            <span class="pb-title">Panel de Partner</span>
+            <span class="pb-name" id="pbName"></span>
+            <span class="demo-badge" id="demoBadge" style="display:none;">MODO DEMO</span>
+        </div>
+        <div class="pb-right">
+            <button type="button" class="btn-hist" id="btnHistorial" onclick="abrirHistorial()" title="Ver panel">
+                <span class="btn-hist-ico">&#128202;</span> Panel
+            </button>
+            <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
+        </div>
+    </div>
+
     <header class="app-hero">
         <img class="hero-logo" src="assets/infile-logo-full-white.png" alt="Infile"
              onerror="this.style.display='none'">
@@ -1007,12 +1065,9 @@
             <h1>Autoenrolamiento de Emisor</h1>
             <p>Certificación FEL · Portal de Partners</p>
         </div>
-        <span class="demo-badge" id="demoBadge" style="display:none;">MODO DEMO</span>
-        <div class="hero-user">
+        <!-- Controles del hero: solo para asesores (los partners usan la barra de arriba) -->
+        <div class="hero-user" id="heroUser">
             <span class="hero-user-name" id="heroUserName"></span>
-            <button type="button" class="btn-hist" id="btnHistorial" onclick="abrirHistorial()" title="Ver historial" style="display:none;">
-                <span class="btn-hist-ico">&#128337;</span> Panel
-            </button>
             <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
     </header>
@@ -1328,16 +1383,27 @@ async function postJSON(url, payload) {
 // ── Sesión / Login ──────────────────────────────────────────
 function mostrarLogin() {
     document.getElementById('appShell').style.display = 'none';
+    document.getElementById('partnerBar').style.display = 'none';
     document.getElementById('loginShell').style.display = 'block';
 }
 
 function mostrarApp(nombre, modoDemo, tipo) {
     document.getElementById('loginShell').style.display = 'none';
     document.getElementById('appShell').style.display = 'block';
-    document.getElementById('heroUserName').textContent = nombre || '';
-    document.getElementById('demoBadge').style.display = modoDemo ? 'inline-block' : 'none';
-    // El historial y el modo demo son solo del portal de partners.
-    document.getElementById('btnHistorial').style.display = (tipo === 'partner') ? 'inline-flex' : 'none';
+
+    const esPartner = (tipo === 'partner');
+
+    // Partner: barra de arriba con nombre, badge, Panel y Salir. Hero limpio.
+    document.getElementById('partnerBar').style.display = esPartner ? 'flex' : 'none';
+    document.getElementById('heroUser').style.display = esPartner ? 'none' : 'flex';
+
+    if (esPartner) {
+        document.getElementById('pbName').textContent = nombre || '';
+        document.getElementById('demoBadge').style.display = modoDemo ? 'inline-block' : 'none';
+    } else {
+        // Asesor: sus controles viven en el hero.
+        document.getElementById('heroUserName').textContent = nombre || '';
+    }
 }
 
 async function verificarSesion() {
@@ -2261,7 +2327,7 @@ function setFiltro(key) {
 
 function abrirHistorial() {
     histFilterKey = null;
-    document.getElementById('histTitulo').textContent = 'Panel · ' + (document.getElementById('heroUserName').textContent || '');
+    document.getElementById('histTitulo').textContent = 'Panel · ' + (document.getElementById('pbName').textContent || '');
     document.getElementById('histOverlay').classList.add('open');
     document.getElementById('histDrawer').classList.add('open');
     document.getElementById('histDrawer').setAttribute('aria-hidden', 'false');
