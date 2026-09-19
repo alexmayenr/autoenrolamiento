@@ -776,16 +776,21 @@
             line-height: 1.5;
         }
 
-        .benefit-number {
+        .benefit-marker {
             width: 28px;
             height: 28px;
             display: grid;
             place-items: center;
             border: 1px solid rgba(255, 255, 255, .3);
             border-radius: 50%;
-            color: #fff;
-            font-size: 10px;
-            font-weight: 800;
+        }
+
+        .benefit-marker::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background: #fff;
+            transform: rotate(45deg);
         }
 
         .login-form-side {
@@ -934,7 +939,7 @@
                 display: block;
             }
 
-            .benefit-number {
+            .benefit-marker {
                 margin-bottom: 8px;
             }
 
@@ -1535,16 +1540,16 @@
             </p>
             <div class="login-benefits">
                 <div class="login-benefit">
-                    <span class="benefit-number">01</span>
-                    <span>Consulta el estado de tus emisores y su fase de implementación.</span>
+                    <span class="benefit-marker" aria-hidden="true"></span>
+                    <span>Mantén visibilidad completa sobre tu cartera de clientes FEL.</span>
                 </div>
                 <div class="login-benefit">
-                    <span class="benefit-number">02</span>
-                    <span>Completa el enrolamiento y la carga de firma paso a paso.</span>
+                    <span class="benefit-marker" aria-hidden="true"></span>
+                    <span>Gestiona emisores, estados y actividad desde un portal centralizado.</span>
                 </div>
                 <div class="login-benefit">
-                    <span class="benefit-number">03</span>
-                    <span>Genera las credenciales que tu cliente necesita para operar.</span>
+                    <span class="benefit-marker" aria-hidden="true"></span>
+                    <span>Agiliza nuevos enrolamientos y la entrega de credenciales.</span>
                 </div>
             </div>
         </div>
