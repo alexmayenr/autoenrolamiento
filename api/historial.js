@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     if (!incluirDemo) filtrosEmisores.origen = 'neq.demo';
     const emisores = await select('ae_emisores', {
       filtros: filtrosEmisores,
-      columnas: 'nit,nombre,prefijo,fase,estado_cuenta,grupo_interno,origen,actualizado_en',
+      columnas: 'nit,nombre,prefijo,fase,estado_cuenta,afiliacion_iva,grupo_interno,origen,actualizado_en',
       orden: 'nombre.asc', limite: 1000,
     });
     const log = await select('ae_enrolamientos_log', {
