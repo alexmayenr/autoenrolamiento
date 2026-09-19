@@ -828,7 +828,7 @@
             top: 0;
             right: 0;
             height: 100vh;
-            width: min(560px, 94vw);
+            width: min(960px, 97vw);
             background: #fff;
             box-shadow: -12px 0 40px -18px rgba(14, 40, 65, .55);
             z-index: 41;
@@ -882,10 +882,57 @@
         .hist-table td { padding: 8px 8px; border-bottom: 1px solid #f0f2f5; }
         .hist-table tr:hover td { background: #f7f9fb; }
 
+        /* Dashboard: tiles de resumen (funcionan como filtro) */
+        .dash-tiles {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
+            gap: 10px;
+            margin: 6px 0 14px;
+        }
+        .dash-tile {
+            border: 1.5px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 14px;
+            cursor: pointer;
+            background: #fff;
+            transition: border-color .15s, background .15s, box-shadow .15s;
+            text-align: left;
+            font-family: inherit;
+        }
+        .dash-tile:hover { border-color: var(--brand); }
+        .dash-tile.active {
+            border-color: var(--brand);
+            background: var(--brand-lt);
+            box-shadow: 0 0 0 3px var(--brand-lt);
+        }
+        .dash-tile .tile-num { font-size: 22px; font-weight: 800; color: var(--brand); line-height: 1.1; }
+        .dash-tile .tile-lbl { font-size: 11.5px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+        .dash-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 14px; }
+        .dash-chip {
+            border: 1.3px solid var(--border); border-radius: 20px;
+            padding: 5px 12px; font-size: 12px; font-weight: 600; color: var(--muted);
+            background: #fff; cursor: pointer; font-family: inherit;
+        }
+        .dash-chip:hover { border-color: var(--brand); }
+        .dash-chip.active { border-color: var(--brand); background: var(--brand-lt); color: var(--brand); }
+        .dash-chip-label { font-size: 11px; color: var(--muted); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; margin: 0 0 6px; }
+
+        .btn-llave {
+            background: var(--brand-lt); color: var(--brand); border: none;
+            border-radius: 6px; padding: 3px 9px; font-family: inherit; font-size: 11px;
+            font-weight: 700; cursor: pointer;
+        }
+        .btn-llave:hover { filter: brightness(.96); }
+        .btn-llave:disabled { opacity: .6; cursor: default; }
+        .llave-val { font-size: 11px; background: #f2f5f8; padding: 2px 6px; border-radius: 5px; word-break: break-all; }
+
         .pill {
             display: inline-block; font-size: 10.5px; font-weight: 700;
             padding: 2px 7px; border-radius: 20px;
         }
+        .pill-activo { background: #e6f4ec; color: #00875A; }
+        .pill-inactivo { background: #f0f2f5; color: #5B6774; }
         .pill-prod { background: #e6f4ec; color: #00875A; }
         .pill-impl { background: #fff4e0; color: #9a6a00; }
         .pill-demo { background: #fdeaea; color: #c0392b; }
@@ -964,7 +1011,7 @@
         <div class="hero-user">
             <span class="hero-user-name" id="heroUserName"></span>
             <button type="button" class="btn-hist" id="btnHistorial" onclick="abrirHistorial()" title="Ver historial" style="display:none;">
-                <span class="btn-hist-ico">&#128337;</span> Historial
+                <span class="btn-hist-ico">&#128337;</span> Panel
             </button>
             <button type="button" class="btn-logout" onclick="cerrarSesion()">Salir</button>
         </div>
@@ -974,7 +1021,7 @@
     <div class="hist-overlay" id="histOverlay" onclick="cerrarHistorial()"></div>
     <aside class="hist-drawer" id="histDrawer" aria-hidden="true">
         <div class="hist-head">
-            <h2>Historial</h2>
+            <h2 id="histTitulo">Panel</h2>
             <button type="button" class="hist-close" onclick="cerrarHistorial()">&times;</button>
         </div>
         <div class="hist-tabs">
@@ -2186,8 +2233,35 @@ document.getElementById('nit').addEventListener('input', function() {
 // ── Historial ───────────────────────────────────────────────
 let histData = { emisores: [], log: [] };
 let histTab = 'emisores';
+let histFilterKey = null; // filtro activo del dashboard (null = todos)
+
+// Matchers de los tiles/chips del resumen.
+const FILTROS = {
+    activo:   function (e) { return (e.estado_cuenta || '') === 'Activo'; },
+    inactivo: function (e) { return (e.estado_cuenta || '') !== 'Activo'; },
+    prod:     function (e) { return (e.fase || '').toUpperCase() === 'PRODUCCION'; },
+    impl:     function (e) { return (e.fase || '').toUpperCase() === 'IMPLEMENTACION'; },
+    bloq:     function (e) { return /bloqueo/i.test(e.estado_cuenta || ''); },
+};
+
+function matcherFor(key) {
+    if (!key) return function () { return true; };
+    if (key.indexOf('iva:') === 0) {
+        const v = key.slice(4);
+        return function (e) { return (e.afiliacion_iva || '') === v; };
+    }
+    return FILTROS[key] || function () { return true; };
+}
+
+function setFiltro(key) {
+    if (key === 'total' || histFilterKey === key) histFilterKey = null;
+    else histFilterKey = key;
+    renderHistorialEmisores();
+}
 
 function abrirHistorial() {
+    histFilterKey = null;
+    document.getElementById('histTitulo').textContent = 'Panel · ' + (document.getElementById('heroUserName').textContent || '');
     document.getElementById('histOverlay').classList.add('open');
     document.getElementById('histDrawer').classList.add('open');
     document.getElementById('histDrawer').setAttribute('aria-hidden', 'false');
@@ -2234,27 +2308,101 @@ function pillFase(fase) {
     return escapeHtml(fase || '-');
 }
 
+function pillEstado(estado) {
+    const e = estado || '';
+    if (e === 'Activo') return '<span class="pill pill-activo">Activo</span>';
+    if (/bloqueo/i.test(e)) return '<span class="pill pill-demo">' + escapeHtml(e) + '</span>';
+    return '<span class="pill pill-inactivo">' + escapeHtml(e || '-') + '</span>';
+}
+
 function renderHistorialEmisores() {
     const body = document.getElementById('histBody');
-    const q = (document.getElementById('histBuscar').value || '').toLowerCase().trim();
-    let filas = histData.emisores;
-    if (q) {
-        filas = filas.filter(function (e) {
-            return (e.nit || '').toLowerCase().includes(q) || (e.nombre || '').toLowerCase().includes(q);
+    const ems = histData.emisores;
+
+    // Resumen (tiles que funcionan como filtro).
+    const c = {
+        total:    ems.length,
+        activo:   ems.filter(FILTROS.activo).length,
+        inactivo: ems.filter(FILTROS.inactivo).length,
+        prod:     ems.filter(FILTROS.prod).length,
+        impl:     ems.filter(FILTROS.impl).length,
+        bloq:     ems.filter(FILTROS.bloq).length,
+    };
+    const tiles = [
+        ['total', 'Total'], ['activo', 'Activos'], ['inactivo', 'Inactivos'],
+        ['prod', 'Producción'], ['impl', 'Implementación'], ['bloq', 'Bloqueados'],
+    ];
+    let h = '<div class="dash-tiles">';
+    tiles.forEach(function (t) {
+        const k = t[0];
+        const activo = (k === 'total') ? (histFilterKey === null) : (histFilterKey === k);
+        h += '<button class="dash-tile' + (activo ? ' active' : '') + '" onclick="setFiltro(\'' + k + '\')">' +
+             '<div class="tile-num">' + c[k] + '</div><div class="tile-lbl">' + t[1] + '</div></button>';
+    });
+    h += '</div>';
+
+    // Chips por Afiliación IVA (también filtran).
+    const ivaVals = Array.from(new Set(ems.map(function (e) { return e.afiliacion_iva; })
+        .filter(function (v) { return v && v !== '---'; }))).sort();
+    if (ivaVals.length) {
+        h += '<div class="dash-chip-label">Afiliación IVA</div><div class="dash-chips">';
+        ivaVals.forEach(function (v) {
+            const k = 'iva:' + v;
+            const n = ems.filter(function (e) { return (e.afiliacion_iva || '') === v; }).length;
+            h += '<button class="dash-chip' + (histFilterKey === k ? ' active' : '') + '" onclick="setFiltro(\'iva:' +
+                 String(v).replace(/'/g, "\\'") + '\')">' + escapeHtml(v) + ' (' + n + ')</button>';
         });
+        h += '</div>';
     }
+
+    // Tabla de detalle (filtro activo + búsqueda).
+    const q = (document.getElementById('histBuscar').value || '').toLowerCase().trim();
+    const match = matcherFor(histFilterKey);
+    let filas = ems.filter(match);
+    if (q) filas = filas.filter(function (e) {
+        return (e.nit || '').toLowerCase().includes(q) || (e.nombre || '').toLowerCase().includes(q);
+    });
+
+    h += '<div style="font-size:12px;color:var(--muted);margin:4px 0 8px;">' + filas.length + ' de ' + ems.length + ' emisores</div>';
+
     if (filas.length === 0) {
-        body.innerHTML = '<p class="hist-empty">No hay emisores para mostrar.</p>';
+        h += '<p class="hist-empty">No hay emisores para este filtro.</p>';
+        body.innerHTML = h;
         return;
     }
-    let h = '<table class="hist-table"><thead><tr><th>NIT</th><th>Nombre</th><th>Prefijo</th><th>Fase</th></tr></thead><tbody>';
+
+    h += '<table class="hist-table"><thead><tr><th>NIT</th><th>Nombre</th><th>Prefijo</th><th>Fase</th><th>Estado</th><th>Llave</th></tr></thead><tbody>';
     filas.forEach(function (e) {
         const demo = e.origen === 'demo' ? ' <span class="pill pill-demo">demo</span>' : '';
         h += '<tr><td>' + escapeHtml(e.nit) + '</td><td>' + escapeHtml(e.nombre || '-') + demo +
-             '</td><td>' + escapeHtml(e.prefijo || '-') + '</td><td>' + pillFase(e.fase) + '</td></tr>';
+             '</td><td>' + escapeHtml(e.prefijo || '-') + '</td><td>' + pillFase(e.fase) + '</td><td>' + pillEstado(e.estado_cuenta) +
+             '</td><td><button class="btn-llave" onclick="verLlave(this)" data-prefijo="' + escapeHtml(e.prefijo || '') + '">Ver llave</button></td></tr>';
     });
     h += '</tbody></table>';
     body.innerHTML = h;
+}
+
+// Trae la llave del emisor bajo demanda (consulta-emisor -> emisor.llave).
+// En modo demo devuelve una llave simulada; con credenciales reales, la real.
+async function verLlave(btn) {
+    const prefijo = btn.getAttribute('data-prefijo');
+    if (!prefijo) { btn.disabled = true; btn.textContent = 'sin prefijo'; return; }
+    btn.disabled = true;
+    btn.textContent = '...';
+    try {
+        const resp = await postJSON(API.consultaEmisor, { prefijo: prefijo });
+        const data = await leerJson(resp);
+        const llave = data && data.emisor && data.emisor.llave;
+        if (llave) {
+            btn.parentElement.innerHTML = '<code class="llave-val">' + escapeHtml(llave) + '</code>';
+        } else {
+            btn.disabled = false;
+            btn.textContent = 'sin llave';
+        }
+    } catch (e) {
+        btn.disabled = false;
+        btn.textContent = 'reintentar';
+    }
 }
 
 function renderHistorialLog() {
